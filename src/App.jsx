@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
+import axios from 'axios'
 import './App.css'
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
   const [isRunning, setIsRunning] = useState(false)
   const [mode, setMode] = useState('pomodoro') // pomodoro, shortBreak, longBreak
+  const [tasks, setTasks] = useState([])
+  const [newTask, setNewTask] = useState('')
 
   const times = {
     pomodoro: 25 * 60,
@@ -46,6 +49,46 @@ function App() {
     return () => clearInterval(interval)
   }, [isRunning, timeLeft])
 
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/tasks');
+        setTasks(response.data);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const addTask = async (e) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    
+    try {
+      const response = await axios.post('http://localhost:3000/api/tasks', {
+        text: newTask
+      });
+      setTasks([...tasks, response.data]);
+      setNewTask('');
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const toggleTask = async (taskId, completed) => {
+    try {
+      await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
+        completed: completed ? 0 : 1
+      });
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      ));
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
+  };
+
   return (
     <div className="timer-container">
       <div className="mode-controls">
@@ -80,6 +123,34 @@ function App() {
         <button className="timer-button secondary" onClick={resetTimer}>
           Reset
         </button>
+      </div>
+
+      <div className="tasks-container">
+        <h3>Tasks</h3>
+        <form onSubmit={addTask} className="task-form">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Add a new task"
+            className="task-input"
+          />
+          <button type="submit" className="task-button">Add</button>
+        </form>
+        <div className="tasks-list">
+          {tasks.map(task => (
+            <div key={task.id} className="task-item">
+              <input
+                type="checkbox"
+                checked={task.completed}
+                onChange={() => toggleTask(task.id, task.completed)}
+              />
+              <span className={task.completed ? 'completed' : ''}>
+                {task.text}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
