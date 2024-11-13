@@ -206,6 +206,15 @@ function App() {
                 </div>
                 <div className="session-stats">
                   <span>Tasks: {session.completedTasks}/{session.totalTasks}</span>
+                  {session.tasks && session.tasks.length > 0 && (
+                    <div className="session-tasks">
+                      {session.tasks.map((task, index) => (
+                        <div key={index} className={`session-task ${task.completed ? 'completed' : ''}`}>
+                          • {task.text}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

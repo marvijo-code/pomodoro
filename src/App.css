@@ -191,6 +191,22 @@
   font-size: 0.9rem;
 }
 
+.session-tasks {
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+}
+
+.session-task {
+  font-size: 0.85rem;
+  color: #d1d5db;
+  margin: 0.25rem 0;
+}
+
+.session-task.completed {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
 body {
   background: #1a1a1a;
   color: #e5e7eb;

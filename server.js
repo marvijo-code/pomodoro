@@ -44,9 +44,11 @@ app.get('/api/tasks/:sessionId', (req, res) => {
 app.get('/api/sessions', (req, res) => {
   db.all(`
     SELECT 
-      s.*, 
+      s.*,
       COUNT(t.id) as totalTasks,
-      SUM(CASE WHEN t.completed = 1 THEN 1 ELSE 0 END) as completedTasks
+      SUM(CASE WHEN t.completed = 1 THEN 1 ELSE 0 END) as completedTasks,
+      GROUP_CONCAT(t.text, '||') as taskNames,
+      GROUP_CONCAT(t.completed, '||') as taskCompletions
     FROM sessions s
     LEFT JOIN tasks t ON s.id = t.sessionId
     GROUP BY s.id
@@ -56,6 +58,19 @@ app.get('/api/sessions', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
+    // Process the concatenated strings into arrays
+    rows = rows.map(row => ({
+      ...row,
+      tasks: row.taskNames ? row.taskNames.split('||').map((text, index) => ({
+        text,
+        completed: row.taskCompletions.split('||')[index] === '1'
+      })) : []
+    }));
+    // Remove the concatenated strings from the response
+    rows.forEach(row => {
+      delete row.taskNames;
+      delete row.taskCompletions;
+    });
     res.json(rows);
   });
 });
