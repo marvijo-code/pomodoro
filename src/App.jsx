@@ -8,6 +8,7 @@ function App() {
   const [mode, setMode] = useState('pomodoro') // pomodoro, shortBreak, longBreak
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState('')
+  const [sessionId, setSessionId] = useState(null)
 
   const times = {
     pomodoro: 25 * 60,
@@ -27,6 +28,11 @@ function App() {
   }, [mode])
 
   const toggleTimer = () => {
+    if (!isRunning) {
+      // Generate new session ID when starting a new Pomodoro
+      setSessionId(Date.now().toString())
+      setTasks([]) // Clear previous tasks
+    }
     setIsRunning(!isRunning)
   }
 
@@ -51,15 +57,16 @@ function App() {
 
   useEffect(() => {
     const fetchTasks = async () => {
+      if (!sessionId) return;
       try {
-        const response = await axios.get('http://localhost:3000/api/tasks');
+        const response = await axios.get(`http://localhost:3000/api/tasks/${sessionId}`);
         setTasks(response.data);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       }
     };
     fetchTasks();
-  }, []);
+  }, [sessionId]);
 
   const addTask = async (e) => {
     e.preventDefault();
@@ -67,7 +74,8 @@ function App() {
     
     try {
       const response = await axios.post('http://localhost:3000/api/tasks', {
-        text: newTask
+        text: newTask,
+        sessionId
       });
       setTasks([...tasks, response.data]);
       setNewTask('');

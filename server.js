@@ -13,13 +13,15 @@ db.run(`
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     text TEXT NOT NULL,
-    completed BOOLEAN DEFAULT 0
+    completed BOOLEAN DEFAULT 0,
+    sessionId TEXT NOT NULL
   )
 `);
 
-// Get all tasks
-app.get('/api/tasks', (req, res) => {
-  db.all('SELECT * FROM tasks', [], (err, rows) => {
+// Get tasks for a session
+app.get('/api/tasks/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  db.all('SELECT * FROM tasks WHERE sessionId = ?', [sessionId], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -30,8 +32,8 @@ app.get('/api/tasks', (req, res) => {
 
 // Add new task
 app.post('/api/tasks', (req, res) => {
-  const { text } = req.body;
-  db.run('INSERT INTO tasks (text) VALUES (?)', [text], function(err) {
+  const { text, sessionId } = req.body;
+  db.run('INSERT INTO tasks (text, sessionId) VALUES (?, ?)', [text, sessionId], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
