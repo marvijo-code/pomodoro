@@ -102,9 +102,14 @@ app.post('/api/tasks', (req, res) => {
 // Delete task
 app.delete('/api/tasks/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM tasks WHERE id = ?', [id], (err) => {
+  db.run('DELETE FROM tasks WHERE id = ?', [id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
+      return;
+    }
+    // Check if any row was affected
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Task not found' });
       return;
     }
     res.json({ id });
