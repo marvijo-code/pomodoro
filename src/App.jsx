@@ -12,6 +12,7 @@ function App() {
   const [sessions, setSessions] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [expandedSession, setExpandedSession] = useState(null)
+  const [sessionTasks, setSessionTasks] = useState({})
 
   const times = {
     pomodoro: 25 * 60,
@@ -228,15 +229,30 @@ function App() {
                     <span>Tasks: {session.completedTasks}/{session.totalTasks}</span>
                     <button 
                       className="view-tasks-button"
-                      onClick={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
+                      onClick={async () => {
+                        if (expandedSession === session.id) {
+                          setExpandedSession(null);
+                        } else {
+                          setExpandedSession(session.id);
+                          try {
+                            const response = await axios.get(`http://localhost:3000/api/tasks/${session.id}`);
+                            setSessionTasks(prev => ({
+                              ...prev,
+                              [session.id]: response.data
+                            }));
+                          } catch (error) {
+                            console.error('Error fetching session tasks:', error);
+                          }
+                        }
+                      }}
                     >
                       {expandedSession === session.id ? 'Hide Tasks' : 'View Tasks'}
                     </button>
                   </div>
-                  {expandedSession === session.id && session.tasks && session.tasks.length > 0 && (
+                  {expandedSession === session.id && sessionTasks[session.id] && (
                     <div className="session-tasks">
-                      {session.tasks.map((task, index) => (
-                        <div key={index} className={`session-task ${task.completed ? 'completed' : ''}`}>
+                      {sessionTasks[session.id].map((task) => (
+                        <div key={task.id} className={`session-task ${task.completed ? 'completed' : ''}`}>
                           • {task.text}
                         </div>
                       ))}
