@@ -7,16 +7,17 @@
 }
 
 .timer-container {
-  background: #ffffff;
+  background: #262626;
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  color: #e5e7eb;
 }
 
 .timer-display {
   font-size: 6rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #e5e7eb;
   margin: 1rem 0;
 }
 
@@ -88,10 +89,16 @@
 
 .task-input {
   flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  background: #333333;
+  border: 1px solid #404040;
   border-radius: 8px;
   font-size: 1rem;
+  color: #e5e7eb;
+}
+
+.task-input::placeholder {
+  color: #9ca3af;
 }
 
 .task-button {
@@ -113,9 +120,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
-  background: #f9fafb;
+  padding: 0.75rem;
+  background: #333333;
   border-radius: 8px;
+  color: #e5e7eb;
 }
 
 .task-item input[type="checkbox"] {
@@ -125,9 +133,21 @@
 
 .task-item .completed {
   text-decoration: line-through;
-  color: #9ca3af;
+  color: #6b7280;
+}
+
+.task-item input[type="checkbox"] {
+  accent-color: #4f46e5;
+  cursor: pointer;
 }
 
 body {
-  background: #f3f4f6;
+  background: #1a1a1a;
+  color: #e5e7eb;
+}
+
+#root {
+  background: #262626;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
