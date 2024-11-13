@@ -108,6 +108,15 @@ function App() {
     }
   };
 
+  const deleteTask = async (taskId) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/tasks/${taskId}`);
+      setTasks(tasks.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
   const toggleTask = async (taskId, completed) => {
     try {
       await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
@@ -180,6 +189,15 @@ function App() {
               <span className={task.completed ? 'completed' : ''}>
                 {task.text}
               </span>
+              <button 
+                className="delete-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  deleteTask(task.id);
+                }}
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>

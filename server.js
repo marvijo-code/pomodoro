@@ -99,6 +99,18 @@ app.post('/api/tasks', (req, res) => {
   });
 });
 
+// Delete task
+app.delete('/api/tasks/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM tasks WHERE id = ?', [id], (err) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ id });
+  });
+});
+
 // Toggle task completion
 app.put('/api/tasks/:id', (req, res) => {
   const { id } = req.params;

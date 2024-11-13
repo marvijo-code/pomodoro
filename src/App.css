@@ -141,6 +141,24 @@
   cursor: pointer;
 }
 
+.task-item {
+  justify-content: space-between;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  transition: color 0.2s;
+}
+
+.delete-button:hover {
+  color: #ef4444;
+}
+
 .sessions-container {
   margin-top: 2rem;
   border-top: 1px solid #404040;
