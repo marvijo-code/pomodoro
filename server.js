@@ -8,25 +8,67 @@ app.use(cors());
 app.use(express.json());
 
 
-// Create tasks table
+// Create tasks and sessions tables
 db.run(`
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     text TEXT NOT NULL,
     completed BOOLEAN DEFAULT 0,
-    sessionId TEXT NOT NULL
+    sessionId TEXT NOT NULL,
+    completedAt DATETIME
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    startTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    endTime DATETIME,
+    mode TEXT
   )
 `);
 
 // Get tasks for a session
 app.get('/api/tasks/:sessionId', (req, res) => {
   const { sessionId } = req.params;
-  db.all('SELECT * FROM tasks WHERE sessionId = ?', [sessionId], (err, rows) => {
+  db.all('SELECT * FROM tasks WHERE sessionId = ? ORDER BY completedAt DESC', [sessionId], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     res.json(rows);
+  });
+});
+
+// Get all sessions with task counts
+app.get('/api/sessions', (req, res) => {
+  db.all(`
+    SELECT 
+      s.*, 
+      COUNT(t.id) as totalTasks,
+      SUM(CASE WHEN t.completed = 1 THEN 1 ELSE 0 END) as completedTasks
+    FROM sessions s
+    LEFT JOIN tasks t ON s.id = t.sessionId
+    GROUP BY s.id
+    ORDER BY s.startTime DESC
+  `, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Start new session
+app.post('/api/sessions', (req, res) => {
+  const { sessionId, mode } = req.body;
+  db.run('INSERT INTO sessions (id, mode) VALUES (?, ?)', [sessionId, mode], (err) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ sessionId, mode });
   });
 });
 
@@ -46,12 +88,13 @@ app.post('/api/tasks', (req, res) => {
 app.put('/api/tasks/:id', (req, res) => {
   const { id } = req.params;
   const { completed } = req.body;
-  db.run('UPDATE tasks SET completed = ? WHERE id = ?', [completed, id], (err) => {
+  const completedAt = completed ? new Date().toISOString() : null;
+  db.run('UPDATE tasks SET completed = ?, completedAt = ? WHERE id = ?', [completed, completedAt, id], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ id, completed });
+    res.json({ id, completed, completedAt });
   });
 });
 

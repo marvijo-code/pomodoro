@@ -9,6 +9,8 @@ function App() {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState('')
   const [sessionId, setSessionId] = useState(null)
+  const [sessions, setSessions] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
 
   const times = {
     pomodoro: 25 * 60,
@@ -27,14 +29,36 @@ function App() {
     setIsRunning(false)
   }, [mode])
 
-  const toggleTimer = () => {
+  const toggleTimer = async () => {
     if (!isRunning) {
-      // Generate new session ID when starting a new Pomodoro
-      setSessionId(Date.now().toString())
-      setTasks([]) // Clear previous tasks
+      const newSessionId = Date.now().toString();
+      setSessionId(newSessionId);
+      setTasks([]); // Clear previous tasks
+      try {
+        await axios.post('http://localhost:3000/api/sessions', {
+          sessionId: newSessionId,
+          mode
+        });
+        fetchSessions();
+      } catch (error) {
+        console.error('Error creating session:', error);
+      }
     }
-    setIsRunning(!isRunning)
+    setIsRunning(!isRunning);
   }
+
+  const fetchSessions = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/sessions');
+      setSessions(response.data);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
 
   const changeMode = (newMode) => {
     setMode(newMode)
@@ -159,6 +183,34 @@ function App() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="sessions-container">
+        <button 
+          className="history-button"
+          onClick={() => setShowHistory(!showHistory)}
+        >
+          {showHistory ? 'Hide History' : 'Show History'}
+        </button>
+        
+        {showHistory && (
+          <div className="sessions-list">
+            <h3>Previous Sessions</h3>
+            {sessions.map(session => (
+              <div key={session.id} className="session-item">
+                <div className="session-header">
+                  <span className="session-mode">{session.mode}</span>
+                  <span className="session-date">
+                    {new Date(session.startTime).toLocaleString()}
+                  </span>
+                </div>
+                <div className="session-stats">
+                  <span>Tasks: {session.completedTasks}/{session.totalTasks}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
