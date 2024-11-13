@@ -31,7 +31,7 @@ db.run(`
 // Get tasks for a session
 app.get('/api/tasks/:sessionId', (req, res) => {
   const { sessionId } = req.params;
-  db.all('SELECT * FROM tasks WHERE sessionId = ? ORDER BY completedAt DESC', [sessionId], (err, rows) => {
+  db.all('SELECT * FROM tasks WHERE sessionId = ? ORDER BY id ASC', [sessionId], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;

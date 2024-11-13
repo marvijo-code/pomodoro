@@ -11,6 +11,7 @@ function App() {
   const [sessionId, setSessionId] = useState(null)
   const [sessions, setSessions] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [expandedSession, setExpandedSession] = useState(null)
 
   const times = {
     pomodoro: 25 * 60,
@@ -215,7 +216,7 @@ function App() {
           <div className="sessions-list">
             <h3>Previous Sessions</h3>
             {sessions.map(session => (
-              <div key={session.id} className="session-item">
+              <div key={session.id} className={`session-item ${expandedSession === session.id ? 'expanded' : ''}`}>
                 <div className="session-header">
                   <span className="session-mode">{session.mode}</span>
                   <span className="session-date">
@@ -223,8 +224,16 @@ function App() {
                   </span>
                 </div>
                 <div className="session-stats">
-                  <span>Tasks: {session.completedTasks}/{session.totalTasks}</span>
-                  {session.tasks && session.tasks.length > 0 && (
+                  <div className="stats-row">
+                    <span>Tasks: {session.completedTasks}/{session.totalTasks}</span>
+                    <button 
+                      className="view-tasks-button"
+                      onClick={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
+                    >
+                      {expandedSession === session.id ? 'Hide Tasks' : 'View Tasks'}
+                    </button>
+                  </div>
+                  {expandedSession === session.id && session.tasks && session.tasks.length > 0 && (
                     <div className="session-tasks">
                       {session.tasks.map((task, index) => (
                         <div key={index} className={`session-task ${task.completed ? 'completed' : ''}`}>
