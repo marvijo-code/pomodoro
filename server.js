@@ -1,18 +1,12 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
+import express from 'express';
+import sqlite3 from 'sqlite3';
+import cors from 'cors';
 
 const app = express();
+const db = new sqlite3.Database('./tasks.db');
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./tasks.db', (err) => {
-  if (err) {
-    console.error(err.message);
-  }
-  console.log('Connected to the tasks database.');
-});
 
 // Create tasks table
 db.run(`
@@ -62,4 +56,14 @@ app.put('/api/tasks/:id', (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Handle database errors
+db.on('error', (err) => {
+  console.error('Database error:', err);
+});
+
+// Log successful connection
+db.on('open', () => {
+  console.log('Connected to the tasks database.');
 });
