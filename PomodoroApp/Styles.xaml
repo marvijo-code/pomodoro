@@ -22,4 +22,15 @@
     <Style Selector="Button:focus, Button:focus-visible">
         <Setter Property="Outline" Value="4px auto -webkit-focus-ring-color"/>
     </Style>
+    <!-- Additional styles from src\index.css -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="#242424"/>
+    </Style>
+    <Style Selector="Window:light">
+        <Setter Property="Background" Value="#ffffff"/>
+        <Setter Property="Foreground" Value="#213547"/>
+    </Style>
+    <Style Selector="Button:light">
+        <Setter Property="Background" Value="#f9f9f9"/>
+    </Style>
 </ResourceDictionary>
