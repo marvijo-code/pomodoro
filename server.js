@@ -4,7 +4,11 @@ import cors from 'cors';
 
 const app = express();
 const db = new sqlite3.Database('./tasks.db');
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:8802'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 app.use(express.json());
 
 
@@ -130,9 +134,13 @@ app.put('/api/tasks/:id', (req, res) => {
   });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const port = process.env.PORT || 8801;
+app.listen(port, '0.0.0.0', (err) => {
+  if (err) {
+    console.error('Error starting server:', err);
+    return;
+  }
+  console.log(`Server running on http://localhost:${port}`);
 });
 
 // Handle database errors

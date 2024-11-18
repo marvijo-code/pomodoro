@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import './App.css'
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
   const [isRunning, setIsRunning] = useState(false)
@@ -37,7 +39,7 @@ function App() {
       setSessionId(newSessionId);
       setTasks([]); // Clear previous tasks
       try {
-        await axios.post('http://localhost:3000/api/sessions', {
+        await axios.post(`${API_URL}/sessions`, {
           sessionId: newSessionId,
           mode
         });
@@ -51,7 +53,7 @@ function App() {
 
   const fetchSessions = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/sessions');
+      const response = await axios.get(`${API_URL}/sessions`);
       setSessions(response.data);
     } catch (error) {
       console.error('Error fetching sessions:', error);
@@ -85,7 +87,7 @@ function App() {
     const fetchTasks = async () => {
       if (!sessionId) return;
       try {
-        const response = await axios.get(`http://localhost:3000/api/tasks/${sessionId}`);
+        const response = await axios.get(`${API_URL}/tasks/${sessionId}`);
         setTasks(response.data);
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -99,7 +101,7 @@ function App() {
     if (!newTask.trim()) return;
     
     try {
-      const response = await axios.post('http://localhost:3000/api/tasks', {
+      const response = await axios.post(`${API_URL}/tasks`, {
         text: newTask,
         sessionId
       });
@@ -112,7 +114,7 @@ function App() {
 
   const deleteTask = async (taskId) => {
     try {
-      await axios.delete(`http://localhost:3000/api/tasks/${taskId}`);
+      await axios.delete(`${API_URL}/tasks/${taskId}`);
       setTasks(tasks.filter(task => task.id !== taskId));
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -121,7 +123,7 @@ function App() {
 
   const toggleTask = async (taskId, completed) => {
     try {
-      await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
+      await axios.put(`${API_URL}/tasks/${taskId}`, {
         completed: completed ? 0 : 1
       });
       setTasks(tasks.map(task => 
@@ -235,7 +237,7 @@ function App() {
                         } else {
                           setExpandedSession(session.id);
                           try {
-                            const response = await axios.get(`http://localhost:3000/api/tasks/${session.id}`);
+                            const response = await axios.get(`${API_URL}/tasks/${session.id}`);
                             setSessionTasks(prev => ({
                               ...prev,
                               [session.id]: response.data
