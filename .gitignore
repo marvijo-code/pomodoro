@@ -27,3 +27,4 @@ dist-ssr
 .env
 
 create-github-repo.ps1
+.vite
