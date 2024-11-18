@@ -3,6 +3,7 @@ import axios from 'axios'
 import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL;
+const notificationSound = new Audio('/notification.wav');
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
@@ -15,6 +16,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false)
   const [expandedSession, setExpandedSession] = useState(null)
   const [sessionTasks, setSessionTasks] = useState({})
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
   const times = {
     pomodoro: 25 * 60,
@@ -71,17 +73,33 @@ function App() {
   }
 
   useEffect(() => {
-    let interval
+    let interval;
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((time) => time - 1)
-      }, 1000)
+        setTimeLeft((time) => time - 1);
+      }, 1000);
     } else if (timeLeft === 0) {
-      setIsRunning(false)
-      // Play notification sound or show notification here
+      setIsRunning(false);
+      if (isSoundEnabled) {
+        notificationSound.play().catch(error => {
+          console.error('Error playing sound:', error);
+        });
+      }
+      if (Notification.permission === 'granted') {
+        new Notification('Pomodoro Timer', {
+          body: `Your ${mode} session is complete!`,
+          icon: '/vite.svg'
+        });
+      }
     }
-    return () => clearInterval(interval)
-  }, [isRunning, timeLeft])
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft, mode, isSoundEnabled]);
+
+  useEffect(() => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -131,6 +149,14 @@ function App() {
       ));
     } catch (error) {
       console.error('Error toggling task:', error);
+    }
+  };
+
+  const testSound = () => {
+    if (isSoundEnabled) {
+      notificationSound.play().catch(error => {
+        console.error('Error playing sound:', error);
+      });
     }
   };
 
@@ -265,6 +291,21 @@ function App() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="sound-controls">
+        <button 
+          className="timer-button secondary"
+          onClick={testSound}
+        >
+          Test Sound
+        </button>
+        <button 
+          className="timer-button secondary"
+          onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+        >
+          {isSoundEnabled ? '🔊 Sound On' : '🔇 Sound Off'}
+        </button>
       </div>
     </div>
   )
