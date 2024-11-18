@@ -17,6 +17,7 @@ function App() {
   const [expandedSession, setExpandedSession] = useState(null)
   const [sessionTasks, setSessionTasks] = useState({})
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isRinging, setIsRinging] = useState(false);
 
   const times = {
     pomodoro: 25 * 60,
@@ -72,28 +73,61 @@ function App() {
     setIsRunning(false)
   }
 
+  const startRinging = () => {
+    setIsRinging(true);
+    const audio = new Audio(notificationSound);
+    audio.loop = true;
+    audio.play();
+    return audio;
+  };
+
+  const stopRinging = (audio) => {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setIsRinging(false);
+  };
+
   useEffect(() => {
     let interval;
+    let audio;
+
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
+        setTimeLeft(prevTime => {
+          if (prevTime <= 1) {
+            clearInterval(interval);
+            if (isSoundEnabled) {
+              audio = startRinging();
+            }
+            return 0;
+          }
+          return prevTime - 1;
+        });
       }, 1000);
-    } else if (timeLeft === 0) {
-      setIsRunning(false);
-      if (isSoundEnabled) {
-        notificationSound.play().catch(error => {
-          console.error('Error playing sound:', error);
-        });
-      }
-      if (Notification.permission === 'granted') {
-        new Notification('Pomodoro Timer', {
-          body: `Your ${mode} session is complete!`,
-          icon: '/vite.svg'
-        });
-      }
     }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft, mode, isSoundEnabled]);
+
+    return () => {
+      clearInterval(interval);
+      if (audio) {
+        stopRinging(audio);
+      }
+    };
+  }, [isRunning, isSoundEnabled]);
+
+  useEffect(() => {
+    let audio;
+    if (timeLeft === 0 && isSoundEnabled && isRunning) {
+      audio = startRinging();
+    }
+    
+    return () => {
+      if (audio) {
+        stopRinging(audio);
+      }
+    };
+  }, [timeLeft, isSoundEnabled, isRunning]);
 
   useEffect(() => {
     if (Notification.permission === 'default') {
@@ -306,6 +340,14 @@ function App() {
         >
           {isSoundEnabled ? '🔊 Sound On' : '🔇 Sound Off'}
         </button>
+        {isRinging && (
+          <button 
+            className="timer-button secondary"
+            onClick={() => stopRinging()}
+          >
+            Stop Alarm
+          </button>
+        )}
       </div>
     </div>
   )
