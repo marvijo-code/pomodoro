@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Uno: android | Debug | android-x64",
+      "type": "shell",
+      "command": "echo Uno Platform VS Code preLaunch task",
+      "problemMatcher": []
+    }
+  ]
+}

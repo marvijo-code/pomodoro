@@ -1,0 +1,120 @@
+<Page x:Class="UnoPomodoro.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:UnoPomodoro.ViewModels"
+      xmlns:converters="using:UnoPomodoro.Converters"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+  <Page.Resources>
+    <converters:ModeToColorConverter x:Key="ModeToColorConverter" />
+    <converters:TimeToStringConverter x:Key="TimeToStringConverter" />
+    <converters:BoolToStringConverter x:Key="BoolToStringConverter" />
+    <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+    <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    <converters:SessionIdToTextConverter x:Key="SessionIdToTextConverter" />
+  </Page.Resources>
+  <Page.DataContext>
+    <!-- ViewModel will be set programmatically in code-behind -->
+  </Page.DataContext>
+  <ScrollViewer IsTabStop="True">
+    <Grid Padding="20">
+      <StackPanel Spacing="20">
+        <!-- Mode Controls -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+          <Button Content="Pomodoro" 
+                  Command="{Binding ChangeModeCommand}" 
+                  CommandParameter="pomodoro"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}" />
+          <Button Content="Short Break" 
+                  Command="{Binding ChangeModeCommand}" 
+                  CommandParameter="shortBreak"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}" />
+          <Button Content="Long Break" 
+                  Command="{Binding ChangeModeCommand}" 
+                  CommandParameter="longBreak"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}" />
+        </StackPanel>
+
+        <!-- Timer Display -->
+        <TextBlock Text="{Binding TimeLeft, Converter={StaticResource TimeToStringConverter}}" 
+                   FontSize="48" 
+                   HorizontalAlignment="Center" />
+
+        <!-- Timer Controls -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+          <Button Content="{Binding IsRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Pause/Start}" 
+                  Command="{Binding ToggleTimerCommand}" />
+          <Button Content="Reset" 
+                  Command="{Binding ResetTimerCommand}" />
+        </StackPanel>
+
+        <!-- Tasks Section -->
+        <StackPanel>
+          <TextBlock Text="Tasks" FontSize="24" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBox Text="{Binding NewTask, Mode=TwoWay}" 
+                     PlaceholderText="Add a new task" 
+                     Width="200" />
+            <Button Content="Add" Command="{Binding AddTaskCommand}" />
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding Tasks}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <CheckBox IsChecked="{Binding Completed, Mode=TwoWay}" 
+                            Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}" 
+                            CommandParameter="{Binding Id}" />
+                  <TextBlock Text="{Binding Text}" 
+                             Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}" />
+                  <Button Content="×" 
+                          Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}" 
+                          CommandParameter="{Binding Id}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- History Section -->
+        <StackPanel>
+          <Button Content="{Binding ShowHistory, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Hide History/Show History}" 
+                  Command="{Binding ToggleHistoryCommand}" />
+          
+          <StackPanel Visibility="{Binding ShowHistory, Converter={StaticResource BoolToVisibilityConverter}}">
+            <TextBlock Text="Previous Sessions" FontSize="24" />
+            <ItemsControl ItemsSource="{Binding Sessions}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBlock Text="{Binding Mode}" FontWeight="Bold" />
+                      <TextBlock Text="{Binding StartTime}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBlock Text="{Binding CompletedTasks}" />
+                      <TextBlock Text="/" />
+                      <TextBlock Text="{Binding TotalTasks}" />
+                      <Button Content="{Binding DataContext.ExpandedSession, Converter={StaticResource SessionIdToTextConverter}, ConverterParameter=Hide Tasks/View Tasks}" 
+                              Command="{Binding DataContext.ToggleSessionDetailsCommand, ElementName=SessionList}" 
+                              CommandParameter="{Binding Id}" />
+                    </StackPanel>
+                    <!-- Session tasks would go here -->
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Sound Controls -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+          <Button Content="Test Sound" Command="{Binding TestSoundCommand}" />
+          <Button Content="{Binding IsSoundEnabled, Converter={StaticResource BoolToStringConverter}, ConverterParameter=🔇 Sound Off/🔊 Sound On}" 
+                  Command="{Binding ToggleSoundCommand}" />
+          <Button Content="Stop Alarm" 
+                  Command="{Binding StopAlarmCommand}" 
+                  Visibility="{Binding IsRinging, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</Page>

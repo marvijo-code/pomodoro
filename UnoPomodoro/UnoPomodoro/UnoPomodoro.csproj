@@ -1,0 +1,49 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0-android</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+
+    <!-- Display name -->
+    <ApplicationTitle>UnoPomodoro</ApplicationTitle>
+    <!-- App Identifier -->
+    <ApplicationId>com.example.unopomodoro</ApplicationId>
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <!-- Package Publisher -->
+    <ApplicationPublisher>UnoPomodoro</ApplicationPublisher>
+    <!-- Package Description -->
+    <Description>UnoPomodoro powered by Uno Platform.</Description>
+
+    <!--
+      UnoFeatures lets you quickly add and manage implicit package references based on the features you want to use.
+      https://aka.platform.uno/singleproject-features
+    -->
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Debug|net9.0-android'">
+    <!-- Completely disable Fast Deployment to avoid override directory issues -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
+    <AndroidFastDeploymentType>None</AndroidFastDeploymentType>
+    <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+    <!-- Ensure native libraries are stored uncompressed in APK -->
+    <AndroidStoreUncompressedFileExtensions>.dll;.so</AndroidStoreUncompressedFileExtensions>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="sqlite-net-pcl" />
+    <PackageReference Include="Uno.Toolkit.WinUI" />
+    <PackageReference Include="Uno.Material.WinUI" />
+    <PackageReference Include="Uno.Toolkit.WinUI.Material" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UnoPomodoro.Data\UnoPomodoro.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidAsset Include="Assets\Audio\notification.wav" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,228 @@
+﻿==== Crash Summary (2025-08-19 18:26:18Z) ==== Device: emulator-5554 Package: com.example.unopomodoro Errors tail (last 120 lines): ----------------------------------------
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #14 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #15 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #16 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #17 pc 0000000000233364  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+15524) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #18 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #19 pc 00000000000b8b10  <anonymous:712fb0055000> (mono.MonoRuntimeProvider.attachInfo+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #20 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #21 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #22 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #23 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #24 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #25 pc 00000000001cccf0  /system/framework/framework.jar (android.app.ActivityThread.installProvider+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #26 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #27 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #28 pc 00000000005fa00d  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<true>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2205) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #29 pc 0000000000233063  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14755) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #30 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #31 pc 00000000001d5eec  /system/framework/framework.jar (android.app.ActivityThread.installContentProviders+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #32 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #33 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #34 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #35 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #36 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #37 pc 00000000001d20b0  /system/framework/framework.jar (android.app.ActivityThread.handleBindApplication+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #38 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #39 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #40 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #41 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #42 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #43 pc 00000000001cf34c  /system/framework/framework.jar (android.app.ActivityThread.-$$Nest$mhandleBindApplication+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #44 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #45 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #46 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #47 pc 0000000000233364  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+15524) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #48 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #49 pc 00000000001cadfc  /system/framework/framework.jar (android.app.ActivityThread$H.handleMessage+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #50 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #51 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #52 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #53 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #54 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #55 pc 00000000001e5fac  /system/framework/framework.jar (android.os.Handler.dispatchMessage+0)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #56 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #57 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.821 F/DEBUG   ( 5994):       #58 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #59 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #60 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #61 pc 000000000020b7e4  /system/framework/framework.jar (android.os.Looper.loopOnce+0)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #62 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #63 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #64 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #65 pc 0000000000233364  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+15524) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #66 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #67 pc 000000000020c024  /system/framework/framework.jar (android.os.Looper.loop+0)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #68 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #69 pc 00000000005f85f7  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame*, art::JValue*)+103) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #70 pc 00000000005f92d9  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2313) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #71 pc 0000000000233364  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+15524) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #72 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #73 pc 00000000001d6138  /system/framework/framework.jar (android.app.ActivityThread.main+0)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #74 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #75 pc 0000000000987e6e  /apex/com.android.art/lib64/libart.so (artQuickToInterpreterBridge+958) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #76 pc 000000000022b77c  /apex/com.android.art/lib64/libart.so (art_quick_to_interpreter_bridge+140) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #77 pc 00000000002124b6  /apex/com.android.art/lib64/libart.so (art_quick_invoke_static_stub+806) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #78 pc 0000000000474c24  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+228) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #79 pc 00000000008745ea  /apex/com.android.art/lib64/libart.so (_jobject* art::InvokeMethod<(art::PointerSize)8>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jobject*, _jobject*, unsigned long)+2218) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #80 pc 00000000007d00b7  /apex/com.android.art/lib64/libart.so (art::Method_invoke(_JNIEnv*, _jobject*, _jobject*, _jobjectArray*) (.__uniq.165753521025965369065708152063621506277)+39) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #81 pc 000000000022b5eb  /apex/com.android.art/lib64/libart.so (art_quick_generic_jni_trampoline+219) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #82 pc 0000000000212154  /apex/com.android.art/lib64/libart.so (art_quick_invoke_stub+756) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #83 pc 0000000000474bf5  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+181) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #84 pc 00000000005f92f3  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)+2339) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #85 pc 0000000000233101  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)+14913) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #86 pc 000000000022d2e5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #87 pc 00000000001d226c  /system/framework/framework.jar (com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run+0)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #88 pc 00000000005f1de9  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238)+505) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #89 pc 0000000000987e6e  /apex/com.android.art/lib64/libart.so (artQuickToInterpreterBridge+958) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #90 pc 000000000022b77c  /apex/com.android.art/lib64/libart.so (art_quick_to_interpreter_bridge+140) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.822 F/DEBUG   ( 5994):       #91 pc 00000000008196f0  /system/framework/x86_64/boot-framework.oat (com.android.internal.os.ZygoteInit.main+2704) (BuildId: bc047a67a4076b80992fbdfabdfba12acbd1924a)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #92 pc 00000000002124b6  /apex/com.android.art/lib64/libart.so (art_quick_invoke_static_stub+806) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #93 pc 0000000000474c24  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+228) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #94 pc 0000000000875126  /apex/com.android.art/lib64/libart.so (art::JValue art::InvokeWithVarArgs<_jmethodID*>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jmethodID*, __va_list_tag*)+518) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #95 pc 0000000000726e9a  /apex/com.android.art/lib64/libart.so (art::JNI<true>::CallStaticVoidMethodV(_JNIEnv*, _jclass*, _jmethodID*, __va_list_tag*)+586) (BuildId: 62338b1c62e3991543c9b8b8bae2b361)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #96 pc 00000000000dcf68  /system/lib64/libandroid_runtime.so (_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)+136) (BuildId: 74e467b22a4c3107eac51948743c9977)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #97 pc 00000000000f2fb0  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::start(char const*, android::Vector<android::String8> const&, bool)+928) (BuildId: 74e467b22a4c3107eac51948743c9977)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #98 pc 0000000000004706  /system/bin/app_process64 (main+1638) (BuildId: 2919fb70658f9ff2e805cbbbdd33a33b)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #99 pc 0000000000057c82  /apex/com.android.runtime/lib64/bionic/libc.so (__libc_init+114) (BuildId: eb58b4d427279994f00c0e1818477e4f)
+08-19 18:26:08.837 E/tombstoned(  243): Tombstone written to: tombstone_11
+08-19 18:26:08.946 E/FrameEvents( 1098): addRelease: Did not find frame.
+08-19 18:26:09.054 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=2
+08-19 18:26:09.121 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=3
+08-19 18:26:09.137 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=4
+08-19 18:26:09.171 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=5
+08-19 18:26:09.187 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=6
+08-19 18:26:09.205 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=7
+08-19 18:26:09.238 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=8
+08-19 18:26:09.254 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=9
+08-19 18:26:09.269 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=10
+08-19 18:26:09.287 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=11
+08-19 18:26:09.319 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=12
+08-19 18:26:09.337 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=13
+08-19 18:26:09.354 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=14
+08-19 18:26:09.370 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=15
+08-19 18:26:09.387 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=16
+08-19 18:26:09.403 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=17
+08-19 18:26:09.436 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=18
+08-19 18:26:09.459 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=19
+08-19 18:26:09.470 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=20
+08-19 18:26:09.486 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=21
+08-19 18:26:09.502 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=22
+08-19 18:26:09.520 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=23
+08-19 18:26:09.536 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=24
+08-19 18:26:09.553 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=25
+08-19 18:26:09.570 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=26
+08-19 18:26:09.587 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=27
+08-19 18:26:09.602 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=28
+08-19 18:26:09.636 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=29
+08-19 18:26:09.654 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=30
+08-19 18:26:09.671 E/SurfaceFlinger(  468): Out of order buffers detected for RequestedLayerState{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity#97 parentId=93} producedId=10 frameNumber=76 -> producedId=10 frameNumber=31
+--------- beginning of system
+08-19 18:26:11.757 E/TaskPersister(  614): File error accessing recents directory (directory doesn't exist?).
+----------------------------------------
+Runtime indicators tail (last 200 lines):
+----------------------------------------
+
+08-19 18:26:07.464 D/AndroidRuntime( 5966): >>>>>> START 
+com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+08-19 18:26:07.470 I/AndroidRuntime( 5966): Using default boot image
+08-19 18:26:07.470 I/AndroidRuntime( 5966): Leaving lock profiling 
+enabled
+08-19 18:26:07.667 D/AndroidRuntime( 5966): Calling main entry 
+com.android.commands.monkey.Monkey
+08-19 18:26:07.784 I/app_process( 5966): System.exit called, status: 
+0
+08-19 18:26:07.784 I/AndroidRuntime( 5966): VM exiting with result 
+code 0.
+08-19 18:26:08.290 D/nativeloader( 5977): Load /data/app/~~LBFHrgcMtL
+_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm2Jka4tQKM_4QJQ==/lib/x
+86_64/libmonosgen-2.0.so using ns clns-7 from class loader (caller=/d
+ata/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm2J
+ka4tQKM_4QJQ==/base.apk!classes2.dex): ok
+08-19 18:26:08.301 D/nativeloader( 5977): Load /data/app/~~LBFHrgcMtL
+_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm2Jka4tQKM_4QJQ==/lib/x
+86_64/libSystem.Security.Cryptography.Native.Android.so using ns 
+clns-7 from class loader (caller=/data/app/~~LBFHrgcMtL_d53kNotH3BA==
+/com.example.unopomodoro-bPNzkIBm2Jka4tQKM_4QJQ==/base.apk!classes2.d
+ex): ok
+08-19 18:26:08.302 D/DOTNET  ( 5977): 
+AndroidCryptoNative_InitLibraryOnLoad: jint 
+AndroidCryptoNative_InitLibraryOnLoad(JavaVM *, void *) in /__w/1/s/s
+rc/native/libs/System.Security.Cryptography.Native.Android/pal_jni.c
+08-19 18:26:08.304 D/DOTNET  ( 5977): GetOptionalClassGRef: optional 
+class com/android/org/conscrypt/OpenSSLEngineImpl was not found
+08-19 18:26:08.311 D/nativeloader( 5977): Load /data/app/~~LBFHrgcMtL
+_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm2Jka4tQKM_4QJQ==/lib/x
+86_64/libmonodroid.so using ns clns-7 from class loader (caller=/data
+/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm2Jka4
+tQKM_4QJQ==/base.apk!classes2.dex): ok
+08-19 18:26:08.313 W/monodroid( 5977): Failed to create directory 
+'/data/user/0/com.example.unopomodoro/files/.__override__/x86_64'. 
+No such file or directory
+08-19 18:26:08.314 W/monodroid( 5977): Creating public update 
+directory: 
+`/data/user/0/com.example.unopomodoro/files/.__override__/x86_64`
+08-19 18:26:08.314 W/monodroid( 5977): runtime args empty
+08-19 18:26:08.314 W/monodroid-assembly( 5977): Unable to open app 
+library directory 
+'/data/user/0/com.example.unopomodoro/files/.__override__/x86_64': 
+No such file or directory
+08-19 18:26:08.314 F/monodroid( 5977): No assemblies found in 
+'/data/user/0/com.example.unopomodoro/files/.__override__/x86_64' or 
+'<unavailable>'. Assuming this is part of Fast Deployment. Exiting...
+08-19 18:26:08.315 F/monodroid( 5977): ALL entries in APK named 
+`lib/x86_64/` MUST be STORED. Gradle's minification may COMPRESS 
+such entries.
+08-19 18:26:08.315 F/monodroid( 5977): Abort at 
+monodroid-glue.cc:740:3 ('MonoDomain 
+*xamarin::android::internal::MonodroidRuntime::create_domain(JNIEnv 
+*, jstring_array_wrapper &, bool, bool)')
+08-19 18:26:08.819 F/DEBUG   ( 5994):       #01 pc 0000000000054ed7  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so 
+(xamarin::android::Helpers::abort_application(_LogCategories, char 
+const*, bool, std::__ndk1::source_location)+135) (BuildId: 
+a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #02 pc 0000000000020666  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so 
+(xamarin::android::Helpers::abort_application(char const*, bool, 
+std::__ndk1::source_location)+22) (BuildId: 
+a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #03 pc 0000000000032c0b  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so (xamarin::android::intern
+al::MonodroidRuntime::create_domain(_JNIEnv*, 
+xamarin::android::jstring_array_wrapper&, bool, bool)+6267) 
+(BuildId: a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #04 pc 000000000003598a  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so (xamarin::android::intern
+al::MonodroidRuntime::create_and_initialize_domain(_JNIEnv*, 
+_jclass*, xamarin::android::jstring_array_wrapper&, 
+xamarin::android::jstring_array_wrapper&, _jobjectArray*, 
+xamarin::android::jstring_array_wrapper&, _jobject*, bool, bool, 
+bool)+42) (BuildId: a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #05 pc 0000000000043002  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so (xamarin::android::intern
+al::MonodroidRuntime::Java_mono_android_Runtime_initInternal(_JNIEnv*
+, _jclass*, _jstring*, _jobjectArray*, _jstring*, _jobjectArray*, 
+int, _jobject*, _jobjectArray*, unsigned char, unsigned char)+5090) 
+(BuildId: a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #06 pc 0000000000036704  
+/data/app/~~LBFHrgcMtL_d53kNotH3BA==/com.example.unopomodoro-bPNzkIBm
+2Jka4tQKM_4QJQ==/lib/x86_64/libmonodroid.so 
+(Java_mono_android_Runtime_initInternal+100) (BuildId: 
+a956bf052f97ba306c7927d0ebf5ef4ba50b2d1c)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #13 pc 00000000000b885c  
+<anonymous:712fb0055000> (mono.MonoPackageManager.LoadApplication+0)
+08-19 18:26:08.820 F/DEBUG   ( 5994):       #19 pc 00000000000b8b10  
+<anonymous:712fb0055000> (mono.MonoRuntimeProvider.attachInfo+0)
+08-19 18:26:08.823 F/DEBUG   ( 5994):       #97 pc 00000000000f2fb0  
+/system/lib64/libandroid_runtime.so 
+(android::AndroidRuntime::start(char const*, 
+android::Vector<android::String8> const&, bool)+928) (BuildId: 
+74e467b22a4c3107eac51948743c9977)
+
+
