@@ -3,7 +3,8 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:local="using:UnoPomodoro.ViewModels"
       xmlns:converters="using:UnoPomodoro.Converters"
-      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+      xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+      Background="{StaticResource BackgroundColor}">
   <Page.Resources>
     <converters:ModeToColorConverter x:Key="ModeToColorConverter" />
     <converters:TimeToStringConverter x:Key="TimeToStringConverter" />
@@ -11,110 +12,268 @@
     <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     <converters:SessionIdToTextConverter x:Key="SessionIdToTextConverter" />
+    <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
+
+    <!-- Animation Storyboard -->
+    <Storyboard x:Key="TimerPulseAnimation">
+      <DoubleAnimation Storyboard.TargetName="TimerDisplay"
+                       Storyboard.TargetProperty="Opacity"
+                       From="0.6" To="1.0" Duration="0:0:1"
+                       AutoReverse="True" RepeatBehavior="Forever" />
+    </Storyboard>
   </Page.Resources>
+
   <Page.DataContext>
     <!-- ViewModel will be set programmatically in code-behind -->
   </Page.DataContext>
-  <ScrollViewer IsTabStop="True">
-    <Grid Padding="20">
-      <StackPanel Spacing="20">
-        <!-- Mode Controls -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-          <Button Content="Pomodoro" 
-                  Command="{Binding ChangeModeCommand}" 
-                  CommandParameter="pomodoro"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}" />
-          <Button Content="Short Break" 
-                  Command="{Binding ChangeModeCommand}" 
-                  CommandParameter="shortBreak"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}" />
-          <Button Content="Long Break" 
-                  Command="{Binding ChangeModeCommand}" 
-                  CommandParameter="longBreak"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}" />
-        </StackPanel>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Navigation Bar -->
+    <Grid Grid.Row="0" Height="60" Background="{StaticResource SurfaceColor}" Padding="16,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
+        <Button Content="Timer"
+                Click="OnTimerClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="16,8" />
+        <Button Content="Dashboard"
+                Click="OnDashboardClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="16,8" />
+        <Button Content="History"
+                Click="OnHistoryClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="16,8" />
+        <Button Content="Settings"
+                Click="OnSettingsClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="16,8" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <Button Content="🔊"
+                Command="{Binding ToggleSoundCommand}"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="8" />
+        <Button Content="⚙️"
+                Click="OnSettingsClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Padding="8" />
+      </StackPanel>
+    </Grid>
+
+    <!-- Main Content -->
+    <ScrollViewer Grid.Row="1" Padding="20">
+      <Grid RowSpacing="30">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Mode Selection -->
+        <Grid Grid.Row="0" ColumnSpacing="15">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+
+          <!-- Pomodoro Mode -->
+          <Border Grid.Column="0"
+                  Style="{StaticResource CardStyle}"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}">
+            <Button Command="{Binding ChangeModeCommand}"
+                    CommandParameter="pomodoro"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Content="Pomodoro"
+                    Margin="0" />
+          </Border>
+
+          <!-- Short Break Mode -->
+          <Border Grid.Column="1"
+                  Style="{StaticResource CardStyle}"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}">
+            <Button Command="{Binding ChangeModeCommand}"
+                    CommandParameter="shortBreak"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Content="Short Break"
+                    Margin="0" />
+          </Border>
+
+          <!-- Long Break Mode -->
+          <Border Grid.Column="2"
+                  Style="{StaticResource CardStyle}"
+                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}">
+            <Button Command="{Binding ChangeModeCommand}"
+                    CommandParameter="longBreak"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Content="Long Break"
+                    Margin="0" />
+          </Border>
+        </Grid>
 
         <!-- Timer Display -->
-        <TextBlock Text="{Binding TimeLeft, Converter={StaticResource TimeToStringConverter}}" 
-                   FontSize="48" 
-                   HorizontalAlignment="Center" />
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="20">
+            <TextBlock x:Name="TimerDisplay"
+                       Text="{Binding TimeLeft, Converter={StaticResource TimeToStringConverter}}"
+                       Style="{StaticResource TimerDisplayStyle}" />
+
+            <!-- Progress Ring -->
+            <ProgressRing Value="{Binding ProgressPercentage}"
+                          Maximum="100"
+                          Width="120"
+                          Height="120"
+                          IsActive="{Binding IsRunning}"
+                          Foreground="{Binding Mode, Converter={StaticResource ModeToColorConverter}}" />
+
+            <!-- Session Info -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="15">
+              <TextBlock Text="{Binding Mode, StringFormat='{}{0} Mode'}"
+                         FontSize="16"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="•"
+                         FontSize="16"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding SessionInfo}"
+                         FontSize="16"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
 
         <!-- Timer Controls -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-          <Button Content="{Binding IsRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Pause/Start}" 
-                  Command="{Binding ToggleTimerCommand}" />
-          <Button Content="Reset" 
-                  Command="{Binding ResetTimerCommand}" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="15">
+          <Button Content="{Binding IsRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=⏸ Pause/▶ Start}"
+                  Command="{Binding ToggleTimerCommand}"
+                  Style="{StaticResource PrimaryButtonStyle}"
+                  Width="120"
+                  Height="48" />
+          <Button Content="↺ Reset"
+                  Command="{Binding ResetTimerCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Width="120"
+                  Height="48" />
+          <Button Content="⏭ Skip"
+                  Command="{Binding SkipSessionCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Width="120"
+                  Height="48" />
         </StackPanel>
 
-        <!-- Tasks Section -->
-        <StackPanel>
-          <TextBlock Text="Tasks" FontSize="24" />
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBox Text="{Binding NewTask, Mode=TwoWay}" 
-                     PlaceholderText="Add a new task" 
-                     Width="200" />
-            <Button Content="Add" Command="{Binding AddTaskCommand}" />
-          </StackPanel>
-          <ItemsControl ItemsSource="{Binding Tasks}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <CheckBox IsChecked="{Binding Completed, Mode=TwoWay}" 
-                            Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}" 
-                            CommandParameter="{Binding Id}" />
-                  <TextBlock Text="{Binding Text}" 
-                             Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}" />
-                  <Button Content="×" 
-                          Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}" 
-                          CommandParameter="{Binding Id}" />
-                </StackPanel>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
+        <!-- Quick Actions -->
+        <Grid Grid.Row="3" ColumnSpacing="15">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
 
-        <!-- History Section -->
-        <StackPanel>
-          <Button Content="{Binding ShowHistory, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Hide History/Show History}" 
-                  Command="{Binding ToggleHistoryCommand}" />
-          
-          <StackPanel Visibility="{Binding ShowHistory, Converter={StaticResource BoolToVisibilityConverter}}">
-            <TextBlock Text="Previous Sessions" FontSize="24" />
-            <ItemsControl ItemsSource="{Binding Sessions}">
+          <!-- Sound Control -->
+          <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="{Binding IsSoundEnabled, Converter={StaticResource BoolToStringConverter}, ConverterParameter=🔇/🔊}"
+                      Command="{Binding ToggleSoundCommand}"
+                      Style="{StaticResource SecondaryButtonStyle}" />
+              <Button Content="Test Sound"
+                      Command="{Binding TestSoundCommand}"
+                      Style="{StaticResource SecondaryButtonStyle}" />
+              <Button Content="Stop Alarm"
+                      Command="{Binding StopAlarmCommand}"
+                      Style="{StaticResource PrimaryButtonStyle}"
+                      Visibility="{Binding IsRinging, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </StackPanel>
+          </Border>
+
+          <!-- Session Control -->
+          <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="New Session"
+                      Command="{Binding StartNewSessionCommand}"
+                      Style="{StaticResource PrimaryButtonStyle}" />
+              <Button Content="View Tasks"
+                      Command="{Binding ToggleTasksCommand}"
+                      Style="{StaticResource SecondaryButtonStyle}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- Current Tasks -->
+        <Border Grid.Row="4" Style="{StaticResource CardStyle}" Visibility="{Binding ShowTasks, Converter={StaticResource BoolToVisibilityConverter}}">
+          <StackPanel Spacing="15">
+            <TextBlock Text="Current Session Tasks"
+                       FontSize="20"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource OnSurfaceColor}" />
+
+            <!-- Add Task -->
+            <Grid ColumnSpacing="10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+
+              <TextBox Grid.Column="0"
+                       Text="{Binding NewTask, Mode=TwoWay}"
+                       PlaceholderText="Add a new task..."
+                       Style="{StaticResource PrimaryButtonStyle}" />
+
+              <Button Grid.Column="1"
+                      Content="Add"
+                      Command="{Binding AddTaskCommand}"
+                      Style="{StaticResource PrimaryButtonStyle}" />
+            </Grid>
+
+            <!-- Task List -->
+            <ItemsControl ItemsSource="{Binding Tasks}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <TextBlock Text="{Binding Mode}" FontWeight="Bold" />
-                      <TextBlock Text="{Binding StartTime}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <TextBlock Text="{Binding CompletedTasks}" />
-                      <TextBlock Text="/" />
-                      <TextBlock Text="{Binding TotalTasks}" />
-                      <Button Content="{Binding DataContext.ExpandedSession, Converter={StaticResource SessionIdToTextConverter}, ConverterParameter=Hide Tasks/View Tasks}" 
-                              Command="{Binding DataContext.ToggleSessionDetailsCommand, ElementName=SessionList}" 
-                              CommandParameter="{Binding Id}" />
-                    </StackPanel>
-                    <!-- Session tasks would go here -->
-                  </StackPanel>
+                  <Border Margin="0,5,0,5"
+                          Padding="10"
+                          CornerRadius="8"
+                          Background="{StaticResource SurfaceVariantColor}">
+                    <Grid ColumnSpacing="10">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+
+                      <CheckBox Grid.Column="0"
+                                IsChecked="{Binding Completed, Mode=TwoWay}"
+                                Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}"
+                                CommandParameter="{Binding Id}" />
+
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Text}"
+                                 TextDecorations="{Binding Completed, Converter={StaticResource BoolToTextDecorationsConverter}}"
+                                 VerticalAlignment="Center"
+                                 Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}" />
+
+                      <Button Grid.Column="2"
+                              Content="×"
+                              Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}" />
+                    </Grid>
+                  </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
-        </StackPanel>
-
-        <!-- Sound Controls -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-          <Button Content="Test Sound" Command="{Binding TestSoundCommand}" />
-          <Button Content="{Binding IsSoundEnabled, Converter={StaticResource BoolToStringConverter}, ConverterParameter=🔇 Sound Off/🔊 Sound On}" 
-                  Command="{Binding ToggleSoundCommand}" />
-          <Button Content="Stop Alarm" 
-                  Command="{Binding StopAlarmCommand}" 
-                  Visibility="{Binding IsRinging, Converter={StaticResource BoolToVisibilityConverter}}" />
-        </StackPanel>
-      </StackPanel>
-    </Grid>
-  </ScrollViewer>
+        </Border>
+      </Grid>
+    </ScrollViewer>
+  </Grid>
 </Page>

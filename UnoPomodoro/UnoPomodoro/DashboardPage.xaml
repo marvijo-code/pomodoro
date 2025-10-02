@@ -1,0 +1,357 @@
+<Page x:Class="UnoPomodoro.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:UnoPomodoro.ViewModels"
+      xmlns:converters="using:UnoPomodoro.Converters"
+      xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+      Background="{StaticResource BackgroundColor}">
+
+  <Page.Resources>
+    <converters:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />
+    <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
+    <converters:DateToRelativeStringConverter x:Key="DateToRelativeStringConverter" />
+  </Page.Resources>
+
+  <Page.DataContext>
+    <local:DashboardViewModel x:Name="ViewModel" />
+  </Page.DataContext>
+
+  <ScrollViewer>
+    <Grid Padding="20" RowSpacing="20">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Spacing="10">
+        <TextBlock Text="Dashboard"
+                   FontSize="32"
+                   FontWeight="Light"
+                   Foreground="{StaticResource OnSurfaceColor}" />
+        <TextBlock Text="{Binding SelectedDate, StringFormat='{}{0:dddd, MMMM dd, yyyy}'}"
+                   FontSize="16"
+                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+      </StackPanel>
+
+      <!-- Quick Stats -->
+      <Grid Grid.Row="1" ColumnSpacing="15" RowSpacing="15">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Total Focus Time -->
+        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Focus Time"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding TotalFocusTime, Converter={StaticResource TimeSpanToStringConverter}}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource PrimaryColor}" />
+            <TextBlock Text="today"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Completed Sessions -->
+        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Sessions"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding CompletedSessions}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource SecondaryColor}" />
+            <TextBlock Text="completed"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Completed Tasks -->
+        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Tasks"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding CompletedTasks}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource TertiaryColor}" />
+            <TextBlock Text="completed"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Productivity Score -->
+        <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Productivity"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding ProductivityScore, StringFormat='{}{0:F0}%'}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{Binding ProductivityScore, Converter={StaticResource ProgressToColorConverter}}" />
+            <ProgressBar Value="{Binding ProductivityScore}"
+                         Maximum="100"
+                         Height="4"
+                         Background="{StaticResource SurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Current Streak -->
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Current Streak"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding CurrentStreak}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource PrimaryColor}" />
+            <TextBlock Text="days"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Weekly Average -->
+        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Weekly Avg"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBlock Text="{Binding WeeklyAverage, StringFormat='{}{0:F0}m'}"
+                       FontSize="24"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource SecondaryColor}" />
+            <TextBlock Text="per session"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Monthly Goal Progress -->
+        <Border Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Monthly Goal Progress"
+                       FontSize="14"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <Grid ColumnSpacing="10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <ProgressBar Grid.Column="0"
+                           Value="{Binding TotalFocusTime.TotalMinutes}"
+                           Maximum="{Binding MonthlyGoal}"
+                           Height="8"
+                           Background="{StaticResource SurfaceVariantColor}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding TotalFocusTime.TotalMinutes, StringFormat='{}{0:F0}/{1}m'}"
+                         FontSize="12"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- Goals Section -->
+      <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+        <StackPanel Spacing="15">
+          <TextBlock Text="Goals"
+                     FontSize="20"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+
+          <Grid ColumnSpacing="15">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Daily Goal -->
+            <StackPanel Grid.Column="0" Spacing="5">
+              <TextBlock Text="Daily Goal"
+                         FontSize="14"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding DailyGoal, StringFormat='{}{0} minutes'}"
+                         FontSize="18"
+                         FontWeight="Medium"
+                         Foreground="{StaticResource OnSurfaceColor}" />
+            </StackPanel>
+
+            <!-- Weekly Goal -->
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock Text="Weekly Goal"
+                         FontSize="14"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding WeeklyGoal, StringFormat='{}{0} minutes'}"
+                         FontSize="18"
+                         FontWeight="Medium"
+                         Foreground="{StaticResource OnSurfaceColor}" />
+            </StackPanel>
+
+            <!-- Monthly Goal -->
+            <StackPanel Grid.Column="2" Spacing="5">
+              <TextBlock Text="Monthly Goal"
+                         FontSize="14"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding MonthlyGoal, StringFormat='{}{0} minutes'}"
+                         FontSize="18"
+                         FontWeight="Medium"
+                         Foreground="{StaticResource OnSurfaceColor}" />
+            </StackPanel>
+          </Grid>
+
+          <Button Content="Edit Goals"
+                  Command="{Binding UpdateGoalsCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Achievements Section -->
+      <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+        <StackPanel Spacing="15">
+          <TextBlock Text="Achievements"
+                     FontSize="20"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+
+          <ScrollViewer Height="200">
+            <ItemsControl ItemsSource="{Binding Achievements}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Margin="0,5,0,5"
+                          Padding="10"
+                          CornerRadius="8"
+                          Background="{StaticResource SurfaceVariantColor}">
+                    <Grid ColumnSpacing="10">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+
+                      <TextBlock Grid.Column="0"
+                                 Text="{Binding Icon}"
+                                 FontSize="24" />
+
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Title}"
+                                   FontSize="16"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource OnSurfaceColor}" />
+                        <TextBlock Text="{Binding Description}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      </StackPanel>
+
+                      <StackPanel Grid.Column="2" Spacing="2">
+                        <ProgressBar Value="{Binding Progress}"
+                                     Maximum="{Binding MaxProgress}"
+                                     Width="60"
+                                     Height="4"
+                                     Background="{StaticResource OutlineColor}" />
+                        <TextBlock Text="{Binding Progress, StringFormat='{}{0}/{1}'}"
+                                   FontSize="10"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+      <!-- Recent Sessions -->
+      <Border Grid.Row="4" Style="{StaticResource CardStyle}">
+        <StackPanel Spacing="15">
+          <TextBlock Text="Recent Sessions"
+                     FontSize="20"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+
+          <ScrollViewer Height="150">
+            <ItemsControl ItemsSource="{Binding RecentSessions}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Margin="0,5,0,5"
+                          Padding="10"
+                          CornerRadius="8"
+                          Background="{StaticResource SurfaceVariantColor}">
+                    <Grid ColumnSpacing="10">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+
+                      <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="{Binding Mode}"
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource OnSurfaceColor}" />
+                        <TextBlock Text="{Binding StartTime, Converter={StaticResource DateToRelativeStringConverter}}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding TotalTasks, StringFormat='{}{0} tasks'}"
+                                 FontSize="12"
+                                 VerticalAlignment="Center"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding CompletedTasks, StringFormat='{}{0} completed'}"
+                                 FontSize="12"
+                                 VerticalAlignment="Center"
+                                 Foreground="{StaticResource SecondaryColor}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+      <!-- Export Section -->
+      <StackPanel Grid.Row="5"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Spacing="15">
+        <Button Content="Export PDF Report"
+                Command="{Binding ExportReportCommand}"
+                CommandParameter="Pdf"
+                Style="{StaticResource PrimaryButtonStyle}" />
+        <Button Content="Export CSV Data"
+                Command="{Binding ExportReportCommand}"
+                CommandParameter="Csv"
+                Style="{StaticResource SecondaryButtonStyle}" />
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</Page>
