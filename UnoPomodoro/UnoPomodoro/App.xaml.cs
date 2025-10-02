@@ -117,7 +117,7 @@ public partial class App : Application
 #endif
 
             // Exclude logs below this level
-            builder.SetMinimumLevel(LogLevel.Information);
+            builder.SetMinimumLevel(LogLevel.Debug);
 
             // Default filters for Uno Platform namespaces
             builder.AddFilter("Uno", LogLevel.Warning);
@@ -146,7 +146,7 @@ public partial class App : Application
             // builder.AddFilter("Uno.UI.DataBinding.BinderReferenceHolder", LogLevel.Debug );
 
             // DevServer and HotReload related
-            // builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Information);
+            builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Debug);
 
             // Debug JS interop
             // builder.AddFilter("Uno.Foundation.WebAssemblyRuntime", LogLevel.Debug );

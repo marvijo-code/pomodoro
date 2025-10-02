@@ -12,4 +12,9 @@
     -->
     <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257</NoWarn>
   </PropertyGroup>
+  
+  <!-- Required for Uno Hot Reload to work reliably in Debug -->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
 </Project>

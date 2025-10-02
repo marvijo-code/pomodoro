@@ -18,12 +18,9 @@
     <Description>UnoPomodoro powered by Uno Platform.</Description>
 
     <!--
-      UnoFeatures let's you quickly add and manage implicit package references based on the features you want to use.
+      UnoFeatures lets you quickly add and manage implicit package references based on the features you want to use.
       https://aka.platform.uno/singleproject-features
     -->
-    <UnoFeatures>
-      SkiaRenderer;
-    </UnoFeatures>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Debug|net9.0-android'">
     <!-- Completely disable Fast Deployment to avoid override directory issues -->
@@ -38,6 +35,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="sqlite-net-pcl" />
     <PackageReference Include="Uno.Toolkit.WinUI" />
+    <PackageReference Include="Uno.Material.WinUI" />
+    <PackageReference Include="Uno.Toolkit.WinUI.Material" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UnoPomodoro.Data\UnoPomodoro.Data.csproj" />
