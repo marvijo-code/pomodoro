@@ -51,9 +51,10 @@ public partial class App : Application
         var taskRepository = new TaskRepository(connection);
         var soundService = new SoundService();
         var notificationService = new NotificationService();
+        var statisticsService = new StatisticsService(sessionRepository, taskRepository);
 
         // Create MainViewModel with required services
-        var mainViewModel = new MainViewModel(timerService, sessionRepository, taskRepository, soundService, notificationService);
+        var mainViewModel = new MainViewModel(timerService, sessionRepository, taskRepository, soundService, notificationService, statisticsService);
 
         // Do not repeat app initialization when the Window already has content,
         // just ensure that the window is active
