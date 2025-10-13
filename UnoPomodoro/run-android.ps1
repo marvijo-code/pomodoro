@@ -68,16 +68,27 @@ if ($LASTEXITCODE -eq 0) {
         }
 
         # List available AVDs
-        $avds = & $emulatorCmd -list-avds | Where-Object { $_ -and $_.Trim() -ne '' }
+        $avdList = & $emulatorCmd -list-avds 2>&1
+        $avds = $avdList | Where-Object { $_ -and $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }
         if (-not $avds -or $avds.Count -eq 0) {
             Write-Host "Error: No Android Virtual Devices (AVDs) found. Create one with Android Studio's Device Manager." -ForegroundColor Red
             exit 1
         }
-        $avdName = $avds[0]
+        # Ensure we get the first AVD as a string
+        if ($avds -is [array]) {
+            $avdName = $avds[0].ToString()
+        } else {
+            $avdName = $avds.ToString()
+        }
         Write-Host "Starting emulator: $avdName" -ForegroundColor Cyan
 
-        # Start emulator (non-blocking)
-        Start-Process -FilePath $emulatorCmd -ArgumentList @('-avd', $avdName, '-netdelay', 'none', '-netspeed', 'full') | Out-Null
+        # Start emulator (non-blocking) - use -WindowStyle Hidden to avoid focus stealing
+        $emulatorProcess = Start-Process -FilePath $emulatorCmd -ArgumentList @('-avd', $avdName, '-netdelay', 'none', '-netspeed', 'full') -PassThru
+        if (-not $emulatorProcess) {
+            Write-Host "Error: Failed to start emulator process." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "Emulator process started (PID: $($emulatorProcess.Id))" -ForegroundColor Cyan
 
         # Ensure adb server is running
         & $adbCmd start-server | Out-Null
