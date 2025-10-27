@@ -13,6 +13,8 @@
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     <converters:SessionIdToTextConverter x:Key="SessionIdToTextConverter" />
     <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
+    <converters:ModeToTextConverter x:Key="ModeToTextConverter" />
+    <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
 
     <!-- Animation Storyboard -->
     <Storyboard x:Key="TimerPulseAnimation">
@@ -141,7 +143,7 @@
 
             <!-- Session Info -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="15">
-              <TextBlock Text="{Binding Mode, StringFormat='{}{0} Mode'}"
+              <TextBlock Text="{Binding Mode, Converter={StaticResource ModeToTextConverter}}"
                          FontSize="16"
                          Foreground="{StaticResource OnSurfaceVariantColor}" />
               <TextBlock Text="•"
@@ -257,9 +259,9 @@
 
                       <TextBlock Grid.Column="1"
                                  Text="{Binding Text}"
-                                 TextDecorations="{Binding Completed, Converter={StaticResource BoolToTextDecorationsConverter}}"
                                  VerticalAlignment="Center"
-                                 Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}" />
+                                 Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
+                                 Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
 
                       <Button Grid.Column="2"
                               Content="×"

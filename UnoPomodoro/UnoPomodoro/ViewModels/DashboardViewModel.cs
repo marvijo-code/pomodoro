@@ -173,13 +173,9 @@ public partial class DashboardViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task UpdateGoals(int daily, int weekly, int monthly)
+    private async Task UpdateGoals()
     {
-        DailyGoal = daily;
-        WeeklyGoal = weekly;
-        MonthlyGoal = monthly;
-
-        await _statisticsService.UpdateGoalsAsync(daily, weekly, monthly);
+        await _statisticsService.UpdateGoalsAsync(DailyGoal, WeeklyGoal, MonthlyGoal);
     }
 
     private double CalculateProductivityScore()

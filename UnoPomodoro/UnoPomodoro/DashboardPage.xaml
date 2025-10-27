@@ -10,11 +10,13 @@
     <converters:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />
     <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
     <converters:DateToRelativeStringConverter x:Key="DateToRelativeStringConverter" />
+    <converters:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
+    <converters:DoubleToPercentConverter x:Key="DoubleToPercentConverter" />
+    <converters:DoubleToMinutesConverter x:Key="DoubleToMinutesConverter" />
+    <converters:IntToMinutesTextConverter x:Key="IntToMinutesTextConverter" />
+    <converters:IntToTasksTextConverter x:Key="IntToTasksTextConverter" />
+    <converters:IntToCompletedTextConverter x:Key="IntToCompletedTextConverter" />
   </Page.Resources>
-
-  <Page.DataContext>
-    <local:DashboardViewModel x:Name="ViewModel" />
-  </Page.DataContext>
 
   <ScrollViewer>
     <Grid Padding="20" RowSpacing="20">
@@ -33,7 +35,7 @@
                    FontSize="32"
                    FontWeight="Light"
                    Foreground="{StaticResource OnSurfaceColor}" />
-        <TextBlock Text="{Binding SelectedDate, StringFormat='{}{0:dddd, MMMM dd, yyyy}'}"
+        <TextBlock Text="{Binding SelectedDate, Converter={StaticResource DateTimeToStringConverter}}"
                    FontSize="16"
                    Foreground="{StaticResource OnSurfaceVariantColor}" />
       </StackPanel>
@@ -105,7 +107,7 @@
             <TextBlock Text="Productivity"
                        FontSize="14"
                        Foreground="{StaticResource OnSurfaceVariantColor}" />
-            <TextBlock Text="{Binding ProductivityScore, StringFormat='{}{0:F0}%'}"
+            <TextBlock Text="{Binding ProductivityScore, Converter={StaticResource DoubleToPercentConverter}}"
                        FontSize="24"
                        FontWeight="Medium"
                        Foreground="{Binding ProductivityScore, Converter={StaticResource ProgressToColorConverter}}" />
@@ -138,7 +140,7 @@
             <TextBlock Text="Weekly Avg"
                        FontSize="14"
                        Foreground="{StaticResource OnSurfaceVariantColor}" />
-            <TextBlock Text="{Binding WeeklyAverage, StringFormat='{}{0:F0}m'}"
+            <TextBlock Text="{Binding WeeklyAverage, Converter={StaticResource DoubleToMinutesConverter}}"
                        FontSize="24"
                        FontWeight="Medium"
                        Foreground="{StaticResource SecondaryColor}" />
@@ -165,9 +167,12 @@
                            Height="8"
                            Background="{StaticResource SurfaceVariantColor}" />
               <TextBlock Grid.Column="1"
-                         Text="{Binding TotalFocusTime.TotalMinutes, StringFormat='{}{0:F0}/{1}m'}"
                          FontSize="12"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+                         Foreground="{StaticResource OnSurfaceVariantColor}">
+                <Run Text="{Binding TotalFocusTime.TotalMinutes, Converter={StaticResource DoubleToMinutesConverter}}" />
+                <Run Text="/" />
+                <Run Text="{Binding MonthlyGoal, Converter={StaticResource DoubleToMinutesConverter}}" />
+              </TextBlock>
             </Grid>
           </StackPanel>
         </Border>
@@ -193,7 +198,7 @@
               <TextBlock Text="Daily Goal"
                          FontSize="14"
                          Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding DailyGoal, StringFormat='{}{0} minutes'}"
+              <TextBlock Text="{Binding DailyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
                          FontSize="18"
                          FontWeight="Medium"
                          Foreground="{StaticResource OnSurfaceColor}" />
@@ -204,7 +209,7 @@
               <TextBlock Text="Weekly Goal"
                          FontSize="14"
                          Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding WeeklyGoal, StringFormat='{}{0} minutes'}"
+              <TextBlock Text="{Binding WeeklyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
                          FontSize="18"
                          FontWeight="Medium"
                          Foreground="{StaticResource OnSurfaceColor}" />
@@ -215,7 +220,7 @@
               <TextBlock Text="Monthly Goal"
                          FontSize="14"
                          Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding MonthlyGoal, StringFormat='{}{0} minutes'}"
+              <TextBlock Text="{Binding MonthlyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
                          FontSize="18"
                          FontWeight="Medium"
                          Foreground="{StaticResource OnSurfaceColor}" />
@@ -271,10 +276,13 @@
                                      Width="60"
                                      Height="4"
                                      Background="{StaticResource OutlineColor}" />
-                        <TextBlock Text="{Binding Progress, StringFormat='{}{0}/{1}'}"
-                                   FontSize="10"
+                        <TextBlock FontSize="10"
                                    HorizontalAlignment="Center"
-                                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+                                   Foreground="{StaticResource OnSurfaceVariantColor}">
+                          <Run Text="{Binding Progress}" />
+                          <Run Text="/" />
+                          <Run Text="{Binding MaxProgress}" />
+                        </TextBlock>
                       </StackPanel>
                     </Grid>
                   </Border>
@@ -319,13 +327,13 @@
                       </StackPanel>
 
                       <TextBlock Grid.Column="1"
-                                 Text="{Binding TotalTasks, StringFormat='{}{0} tasks'}"
+                                 Text="{Binding TotalTasks, Converter={StaticResource IntToTasksTextConverter}}"
                                  FontSize="12"
                                  VerticalAlignment="Center"
                                  Foreground="{StaticResource OnSurfaceVariantColor}" />
 
                       <TextBlock Grid.Column="2"
-                                 Text="{Binding CompletedTasks, StringFormat='{}{0} completed'}"
+                                 Text="{Binding CompletedTasks, Converter={StaticResource IntToCompletedTextConverter}}"
                                  FontSize="12"
                                  VerticalAlignment="Center"
                                  Foreground="{StaticResource SecondaryColor}" />

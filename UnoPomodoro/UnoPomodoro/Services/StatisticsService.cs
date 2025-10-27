@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
+using System.Globalization;
 using UnoPomodoro.ViewModels;
 
 namespace UnoPomodoro.Services;
@@ -33,7 +34,7 @@ public class StatisticsService : IStatisticsService
             .Select(g => new DailyStats
             {
                 Date = g.Key,
-                TotalMinutes = g.Sum(s => (int)(s.EndTime - s.StartTime)?.TotalMinutes ?? 25),
+                TotalMinutes = g.Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 25)),
                 SessionsCompleted = g.Count(s => s.EndTime.HasValue),
                 TasksCompleted = tasks.Count(t => t.Completed && t.SessionId == g.First().Id),
                 ProductivityScore = CalculateDailyProductivityScore(g.ToList(), tasks.Where(t => t.SessionId == g.First().Id).ToList())
@@ -138,7 +139,7 @@ public class StatisticsService : IStatisticsService
                 CompletedCount = g.Count(t => t.Completed),
                 TotalTime = TimeSpan.FromMinutes(sessions
                     .Where(s => g.Any(t => t.SessionId == s.Id))
-                    .Sum(s => (int)(s.EndTime - s.StartTime)?.TotalMinutes ?? 25))
+                    .Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 25)))
             })
             .ToList();
 
@@ -199,7 +200,7 @@ public class StatisticsService : IStatisticsService
             GeneratedAt = DateTime.UtcNow,
             TotalSessions = sessions.Count,
             CompletedTasks = tasks.Count(t => t.Completed),
-            TotalFocusTime = TimeSpan.FromMinutes(sessions.Sum(s => (int)(s.EndTime - s.StartTime)?.TotalMinutes ?? 25)),
+            TotalFocusTime = TimeSpan.FromMinutes(sessions.Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 25))),
             AverageSessionLength = sessions.Any() ?
                 sessions.Average(s => (s.EndTime - s.StartTime)?.TotalMinutes ?? 25) : 0,
             Sessions = sessions,
@@ -243,7 +244,7 @@ public class StatisticsService : IStatisticsService
             {
                 WeekNumber = g.Key.Week,
                 Year = g.Key.Year,
-                TotalMinutes = g.Sum(s => (int)(s.EndTime - s.StartTime)?.TotalMinutes ?? 25),
+                TotalMinutes = g.Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 25)),
                 SessionsCompleted = g.Count(s => s.EndTime.HasValue),
                 TasksCompleted = tasks.Count(t => t.Completed && g.Any(s => s.Id == t.SessionId)),
                 ProductivityScore = CalculateWeeklyProductivityScore(g.ToList(), tasks.Where(t => g.Any(s => s.Id == t.SessionId)).ToList())
@@ -265,7 +266,7 @@ public class StatisticsService : IStatisticsService
             {
                 Month = g.Key.Month,
                 Year = g.Key.Year,
-                TotalMinutes = g.Sum(s => (int)(s.EndTime - s.StartTime)?.TotalMinutes ?? 25),
+                TotalMinutes = g.Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 25)),
                 SessionsCompleted = g.Count(s => s.EndTime.HasValue),
                 TasksCompleted = tasks.Count(t => t.Completed && g.Any(s => s.Id == t.SessionId)),
                 ProductivityScore = CalculateMonthlyProductivityScore(g.ToList(), tasks.Where(t => g.Any(s => s.Id == t.SessionId)).ToList())
@@ -307,7 +308,7 @@ public class StatisticsService : IStatisticsService
             MostProductiveDay = mostProductiveDay,
             MostProductiveHour = mostProductiveHour,
             AverageSessionLength = averageSessionLength,
-            AverageTasksPerSession = averageTasksPerSession,
+            AverageTasksPerSession = (int)averageTasksPerSession,
             TaskCompletionRate = taskCompletionRate,
             Recommendations = recommendations
         };
@@ -319,7 +320,7 @@ public class StatisticsService : IStatisticsService
 
         var sessionScore = Math.Min(sessions.Count / 8.0, 1.0) * 40; // Max 40 points
         var taskScore = tasks.Any() ? Math.Min((double)tasks.Count(t => t.Completed) / tasks.Count, 1.0) * 40 : 0; // Max 40 points
-        var timeScore = Math.Min(sessions.Sum(s => (s.EndTime - s.StartTime)?.TotalMinutes ?? 25) / 480, 1.0) * 20; // Max 20 points
+        var timeScore = Math.Min(sessions.Sum(s => ((s.EndTime - s.StartTime)?.TotalMinutes ?? 25)) / 480, 1.0) * 20; // Max 20 points
 
         return sessionScore + taskScore + timeScore;
     }
