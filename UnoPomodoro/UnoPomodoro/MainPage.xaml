@@ -238,7 +238,7 @@
             </Grid>
 
             <!-- Task List -->
-            <ItemsControl ItemsSource="{Binding Tasks}">
+            <ItemsControl x:Name="TaskList" ItemsSource="{Binding Tasks}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Margin="0,5,0,5"
@@ -253,9 +253,7 @@
                       </Grid.ColumnDefinitions>
 
                       <CheckBox Grid.Column="0"
-                                IsChecked="{Binding Completed, Mode=TwoWay}"
-                                Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}"
-                                CommandParameter="{Binding Id}" />
+                                IsChecked="{Binding Completed, Mode=TwoWay}" />
 
                       <TextBlock Grid.Column="1"
                                  Text="{Binding Text}"

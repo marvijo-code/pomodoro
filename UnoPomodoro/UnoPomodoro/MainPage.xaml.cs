@@ -21,8 +21,7 @@ public sealed partial class MainPage : Page
         _navigationFrame = new Frame();
         _navigationFrame.Navigated += OnFrameNavigated;
 
-        // Set initial content
-        Content = this; // Keep current content as main page
+        // Content is already set from XAML, don't override it
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
