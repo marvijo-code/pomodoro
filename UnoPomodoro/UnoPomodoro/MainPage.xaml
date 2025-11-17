@@ -37,13 +37,57 @@
     </Grid.RowDefinitions>
 
     <!-- Navigation Bar -->
-    <Grid Grid.Row="0" Height="60" Background="{StaticResource SurfaceColor}" Padding="16,0">
+    <Grid Grid.Row="0"
+          x:Name="TopNavGrid"
+          Background="{StaticResource SurfaceColor}"
+          Padding="16,8">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+      <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="TopNavStates">
+          <VisualState x:Name="TopNavCompact">
+            <VisualState.StateTriggers>
+              <AdaptiveTrigger MinWindowWidth="0" />
+            </VisualState.StateTriggers>
+            <VisualState.Setters>
+              <Setter Target="NavButtonPanel.Orientation" Value="Vertical" />
+              <Setter Target="NavButtonPanel.HorizontalAlignment" Value="Stretch" />
+              <Setter Target="UtilityButtonPanel.(Grid.Row)" Value="1" />
+              <Setter Target="UtilityButtonPanel.(Grid.Column)" Value="0" />
+              <Setter Target="UtilityButtonPanel.(Grid.ColumnSpan)" Value="2" />
+              <Setter Target="UtilityButtonPanel.HorizontalAlignment" Value="Left" />
+            </VisualState.Setters>
+          </VisualState>
+
+          <VisualState x:Name="TopNavWide">
+            <VisualState.StateTriggers>
+              <AdaptiveTrigger MinWindowWidth="600" />
+            </VisualState.StateTriggers>
+            <VisualState.Setters>
+              <Setter Target="NavButtonPanel.Orientation" Value="Horizontal" />
+              <Setter Target="NavButtonPanel.HorizontalAlignment" Value="Left" />
+              <Setter Target="UtilityButtonPanel.(Grid.Row)" Value="0" />
+              <Setter Target="UtilityButtonPanel.(Grid.Column)" Value="1" />
+              <Setter Target="UtilityButtonPanel.(Grid.ColumnSpan)" Value="1" />
+              <Setter Target="UtilityButtonPanel.HorizontalAlignment" Value="Right" />
+            </VisualState.Setters>
+          </VisualState>
+        </VisualStateGroup>
+      </VisualStateManager.VisualStateGroups>
+
+      <StackPanel x:Name="NavButtonPanel"
+                  Grid.Row="0"
+                  Grid.Column="0"
+                  Orientation="Horizontal"
+                  Spacing="12"
+                  VerticalAlignment="Center">
         <Button Content="Timer"
                 Click="OnTimerClick"
                 Style="{StaticResource SecondaryButtonStyle}"
@@ -66,7 +110,12 @@
                 MinWidth="70" />
       </StackPanel>
 
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <StackPanel x:Name="UtilityButtonPanel"
+            Grid.Row="0"
+            Grid.Column="1"
+            Orientation="Horizontal"
+            Spacing="8"
+            VerticalAlignment="Center">
         <Button Content="🔊"
                 Command="{Binding ToggleSoundCommand}"
                 Style="{StaticResource SecondaryButtonStyle}"

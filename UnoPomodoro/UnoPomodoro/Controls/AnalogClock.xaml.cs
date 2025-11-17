@@ -152,10 +152,10 @@ namespace UnoPomodoro.Controls
             }
 
             var startPoint = new Point(center, center - radius);
-            double sweepRadians = angle * Math.PI / 180d;
+            double sweepRadians = (angle - 90d) * Math.PI / 180d;
             var arcEndPoint = new Point(
-                center + radius * Math.Sin(sweepRadians),
-                center - radius * Math.Cos(sweepRadians));
+                center + radius * Math.Cos(sweepRadians),
+                center + radius * Math.Sin(sweepRadians));
 
             var geometry = new PathGeometry();
             var figure = new PathFigure { StartPoint = new Point(center, center) };

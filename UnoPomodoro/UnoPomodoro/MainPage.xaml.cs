@@ -7,22 +7,14 @@ namespace UnoPomodoro;
 
 public sealed partial class MainPage : Page
 {
-    private Frame _navigationFrame;
     private MainViewModel _viewModel;
 
     public MainPage()
     {
         this.InitializeComponent();
-        InitializeNavigation();
     }
 
-    private void InitializeNavigation()
-    {
-        _navigationFrame = new Frame();
-        _navigationFrame.Navigated += OnFrameNavigated;
-
-        // Content is already set from XAML, don't override it
-    }
+    private Frame? RootFrame => App.RootFrame;
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -35,11 +27,6 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private void OnFrameNavigated(object sender, NavigationEventArgs e)
-    {
-        // Update navigation state if needed
-    }
-
     private void OnTimerClick(object sender, RoutedEventArgs e)
     {
         // Navigate to timer view (current view)
@@ -49,16 +36,17 @@ public sealed partial class MainPage : Page
     private void OnDashboardClick(object sender, RoutedEventArgs e)
     {
         // Navigate to dashboard
-        if (_navigationFrame != null)
+        if (_viewModel == null)
         {
-            var dashboardViewModel = new DashboardViewModel(
-                _viewModel.SessionRepository,
-                _viewModel.TaskRepository,
-                _viewModel.StatisticsService);
-
-            _navigationFrame.Navigate(typeof(DashboardPage), dashboardViewModel);
-            Content = _navigationFrame;
+            return;
         }
+
+        var dashboardViewModel = new DashboardViewModel(
+            _viewModel.SessionRepository,
+            _viewModel.TaskRepository,
+            _viewModel.StatisticsService);
+
+        RootFrame?.Navigate(typeof(DashboardPage), dashboardViewModel);
     }
 
     private void OnHistoryClick(object sender, RoutedEventArgs e)

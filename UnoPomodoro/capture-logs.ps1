@@ -1,5 +1,5 @@
 param(
-    [string]$PackageId = 'com.example.unopomodoro',
+    [string]$PackageId = 'com.marvijocode.pomodoro',
     [int]$SleepAfterLaunchSeconds = 4
 )
 $ErrorActionPreference = 'Stop'

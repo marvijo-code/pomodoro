@@ -25,18 +25,7 @@ public sealed partial class DashboardPage : Page
         }
         else
         {
-            // Create default view model
-            var sessionRepository = e.NavigationMode == NavigationMode.New ?
-                new SessionRepository(null) : null;
-            var taskRepository = e.NavigationMode == NavigationMode.New ?
-                new TaskRepository(null) : null;
-            var statisticsService = e.NavigationMode == NavigationMode.New ?
-                new StatisticsService(sessionRepository, taskRepository) : null;
-
-            ViewModel = new DashboardViewModel(
-                sessionRepository,
-                taskRepository,
-                statisticsService);
+            throw new InvalidOperationException("DashboardPage requires a DashboardViewModel parameter.");
         }
     }
 
@@ -44,5 +33,13 @@ public sealed partial class DashboardPage : Page
     {
         get => (DashboardViewModel)DataContext;
         set => DataContext = value;
+    }
+
+    private void OnBackClick(object sender, RoutedEventArgs e)
+    {
+        if (Frame?.CanGoBack == true)
+        {
+            Frame.GoBack();
+        }
     }
 }

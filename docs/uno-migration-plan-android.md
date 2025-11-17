@@ -74,7 +74,7 @@ Note: To target .NET 9 (STS), replace `-tfm net8.0` with `-tfm net9.0`.
 - Set application id via MSBuild (ApplicationId) and generate manifest.
 - Edit `UnoPomodoro/UnoPomodoro.csproj`:
   - Ensure `<GenerateApplicationManifest>true</GenerateApplicationManifest>`.
-  - Add `<ApplicationId>com.example.unopomodoro</ApplicationId>` inside a `<PropertyGroup>`.
+  - Add `<ApplicationId>com.marvijocode.pomodoro</ApplicationId>` inside a `<PropertyGroup>`.
 
 References:
 - ApplicationId property: https://learn.microsoft.com/dotnet/android/building-apps/build-properties#applicationid

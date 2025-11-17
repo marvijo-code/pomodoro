@@ -1,9 +1,14 @@
 param(
     [string]$Configuration = 'Debug',
     [string]$Framework = 'net9.0-android',
-    [string]$PackageId = 'com.example.unopomodoro'
+    [string]$PackageId = 'com.marvijocode.pomodoro'
 )
 $ErrorActionPreference = 'Stop'
+
+$repoRoot = $PSScriptRoot
+if (-not $repoRoot) {
+    $repoRoot = (Resolve-Path '.').Path
+}
 
 function Find-AdbPath {
     $roots = @(
@@ -30,18 +35,20 @@ $adb = Find-AdbPath
 Write-Host ("ADB Path: $adb")
 & $adb version | Out-Host
 
-# Find latest APK from the Android build output
-$apkRoot = Join-Path (Resolve-Path '.').Path 'UnoPomodoro/UnoPomodoro/bin'
+# Locate the most recent APK inside the Uno build output
+$apkRoot = Join-Path $repoRoot 'UnoPomodoro/UnoPomodoro/bin'
 $apkDir = Join-Path $apkRoot $Configuration
 $apkDir = Join-Path $apkDir $Framework
 if (!(Test-Path $apkDir)) { throw "APK directory not found: $apkDir. Build the project first." }
 
-$apk = Get-ChildItem -Recurse -Path $apkDir -Filter '*.apk' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$apk = Get-ChildItem -Recurse -Path $apkDir -Filter '*.apk' |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
 if (-not $apk) { throw "APK not found under $apkDir. Build the project first." }
 
 Write-Host ("Installing: " + $apk.FullName)
 & $adb install -r "$($apk.FullName)" | Out-Host
 
 Write-Host ("Launching package: $PackageId")
-# Use monkey to send a single launch intent event
+# Use monkey to issue a single launch intent
 & $adb shell monkey -p $PackageId -c android.intent.category.LAUNCHER 1 | Out-Host

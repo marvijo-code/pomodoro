@@ -11,6 +11,8 @@ namespace UnoPomodoro;
 
 public partial class App : Application
 {
+    public static App? Instance => Current as App;
+
     /// <summary>
     /// Initializes the singleton application object. This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -21,6 +23,8 @@ public partial class App : Application
     }
 
     protected Window? MainWindow { get; private set; }
+
+    public static Frame? RootFrame => Instance?.MainWindow?.Content as Frame;
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {

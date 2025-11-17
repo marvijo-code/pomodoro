@@ -6,16 +6,16 @@
     <UnoSingleProject>true</UnoSingleProject>
 
     <!-- Display name -->
-    <ApplicationTitle>UnoPomodoro</ApplicationTitle>
+    <ApplicationTitle>Pomodoro Vijo</ApplicationTitle>
     <!-- App Identifier -->
-    <ApplicationId>com.example.unopomodoro</ApplicationId>
+    <ApplicationId>com.marvijocode.pomodoro</ApplicationId>
     <!-- Versions -->
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <!-- Package Publisher -->
-    <ApplicationPublisher>UnoPomodoro</ApplicationPublisher>
+    <ApplicationPublisher>Pomodoro Vijo</ApplicationPublisher>
     <!-- Package Description -->
-    <Description>UnoPomodoro powered by Uno Platform.</Description>
+    <Description>Pomodoro Vijo helps you stay focused with polished Pomodoro cycles.</Description>
 
     <!--
       UnoFeatures lets you quickly add and manage implicit package references based on the features you want to use.
@@ -30,6 +30,16 @@
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
     <!-- Ensure native libraries are stored uncompressed in APK -->
     <AndroidStoreUncompressedFileExtensions>.dll;.so</AndroidStoreUncompressedFileExtensions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net9.0-android'">
+    <!-- Ship a single arm64 build to avoid bundling emulator/x86 native libs -->
+    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+    <!-- Use the assembly store/linker so we do not embed every managed assembly + pdb verbatim -->
+    <EmbedAssembliesIntoApk>false</EmbedAssembliesIntoApk>
+    <AndroidUseAssemblyStore>true</AndroidUseAssemblyStore>
+    <AndroidStoreUncompressedFileExtensions></AndroidStoreUncompressedFileExtensions>
+    <!-- Trim unused framework code to keep lib_Mono.Android.so small while staying safe for Uno -->
+    <AndroidLinkMode>SdkOnly</AndroidLinkMode>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

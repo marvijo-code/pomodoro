@@ -31,6 +31,12 @@
 
       <!-- Header -->
       <StackPanel Grid.Row="0" Spacing="10">
+        <Button Content="← Back"
+                Click="OnBackClick"
+                Style="{StaticResource SecondaryButtonStyle}"
+                HorizontalAlignment="Left"
+                Padding="12,6"
+                MinWidth="80" />
         <TextBlock Text="Dashboard"
                    FontSize="32"
                    FontWeight="Light"

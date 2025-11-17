@@ -1,42 +1,132 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   width="456"
-   height="456"
-   viewBox="0 0 456 456"
-   version="1.1"
-   id="svg453"
-   sodipodi:docname="icon.svg"
-   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <defs
-     id="defs457" />
-  <sodipodi:namedview
-     id="namedview455"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     showgrid="false"
-     inkscape:zoom="1.8574561"
-     inkscape:cx="228.26919"
-     inkscape:cy="228.26919"
-     inkscape:window-width="1920"
-     inkscape:window-height="1027"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg453" />
-  <rect
-     x="0"
-     y="0"
-     width="456"
-     height="456"
-     fill="#FFFFFF"
-     id="rect451" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" stop-color="#3D1F57" />
+         <stop offset="100%" stop-color="#120C1F" />
+      </linearGradient>
+      <linearGradient id="fruit" x1="0%" y1="20%" x2="100%" y2="80%">
+         <stop offset="0%" stop-color="#FF6B6B" />
+         <stop offset="100%" stop-color="#FF8745" />
+      </linearGradient>
+      <linearGradient id="leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" stop-color="#6CE08E" />
+         <stop offset="100%" stop-color="#31B86C" />
+      </linearGradient>
+   </defs>
+
+   <rect width="456" height="456" rx="96" fill="url(#bg)" />
+
+   <circle cx="228" cy="238" r="148" fill="url(#fruit)" />
+   <ellipse cx="228" cy="260" rx="120" ry="110" fill="#E64848" opacity="0.35" />
+   <circle cx="228" cy="232" r="118" fill="url(#fruit)" />
+   <path d="M140 260c24 62 83 98 141 88 21-3 40-12 54-26-22 46-70 79-126 79-68 0-123-47-135-111 12-13 37-37 66-30z" fill="#000" opacity="0.11" />
+
+   <path d="M208 120c-8-26 12-47 40-45 32 3 47 32 28 67" fill="#2C1B3B" opacity="0.45" />
+   <path d="M185 122c22 7 53 8 79 0-10-27-41-36-63-26-9 4-14 13-16 26z" fill="#472953" />
+
+   <path d="M199 96c32 15 61 14 86-2 9 24-14 47-38 46-24-1-46-24-48-44z" fill="#5B3466" opacity="0.85" />
+
+   <path d="M214 111c-5-24 14-41 36-39 20 2 34 18 34 39" fill="#2C1B3B" opacity="0.35" />
+
+   <path d="M214 110c19 8 48 6 66-5-1 11-6 20-15 26-14 10-35 10-50 0-9-6-15-15-15-26z" fill="#3B2147" />
+
+   <path d="M196 107c-23-20-59-20-82 0" fill="#2C1B3B" opacity="0.45" />
+
+   <path d="M214 118c-20-25-58-26-82-2" fill="#2C1B3B" opacity="0.25" />
+
+   <path d="M309 109c18-18 48-18 66 0-18 18-48 18-66 0z" fill="#2C1B3B" opacity="0.3" />
+
+   <path d="M228 104c-18-18-48-18-66 0 18 18 48 18 66 0z" fill="#2C1B3B" opacity="0.3" />
+
+   <path d="M236 96c-10-10-26-10-36 0 10 10 26 10 36 0z" fill="#2C1B3B" opacity="0.25" />
+
+   <path d="M199 120l29-29c5-5 13-5 18 0l29 29-38 13z" fill="#2C1B3B" opacity="0.5" />
+
+   <path d="M240 94c26 12 55 11 82-2-4 23-26 39-48 34-18-4-29-18-34-32z" fill="#3B2147" opacity="0.65" />
+
+   <path d="M228 86c-17-16-45-16-62 0 17 16 45 16 62 0z" fill="#2C1B3B" opacity="0.35" />
+
+   <path d="M228 214c-8 0-14 6-14 14v72c0 7 6 13 14 13s14-6 14-13v-45l43 22c6 3 14 1 17-5 3-6 1-14-5-17l-53-27c-4-2-10-4-16-4z" fill="#FFFFFF" />
+   <circle cx="228" cy="228" r="20" fill="#FFFFFF" opacity="0.25" />
+
+   <path d="M168 216c-14 0-26 12-26 26s12 26 26 26c14 0 26-12 26-26s-12-26-26-26z" fill="#FFFFFF" opacity="0.08" />
+
+   <circle cx="300" cy="256" r="18" fill="#FFFFFF" opacity="0.1" />
+
+   <path d="M204 134c-22-12-51-5-68 15 13-40 54-60 86-44-9 5-15 16-18 29z" fill="#FFFFFF" opacity="0.1" />
+
+   <path d="M262 134c22-12 51-5 68 15-13-40-54-60-86-44 9 5 15 16 18 29z" fill="#FFFFFF" opacity="0.08" />
+
+   <path d="M192 138c23-12 54-11 76 0-11 28-45 29-64 14-6-5-10-12-12-14z" fill="#FFFFFF" opacity="0.05" />
+
+   <path d="M232 86c-6-6-16-6-22 0l-20 20c20 8 42 8 62 0z" fill="#FFFFFF" opacity="0.05" />
+
+   <path d="M286 90c-8-8-21-8-30 0l-13 13c15 6 32 6 47 0z" fill="#FFFFFF" opacity="0.05" />
+
+   <path d="M168 92c-8-8-21-8-30 0 8 8 21 8 30 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M194 82c-8-8-21-8-30 0 8 8 21 8 30 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M256 78c-8-8-21-8-30 0 8 8 21 8 30 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M214 70c-10-10-26-10-36 0 10 10 26 10 36 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M228 64c-13-13-34-13-47 0 13 13 34 13 47 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M248 58c-13-13-34-13-47 0 13 13 34 13 47 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M210 64c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M242 60c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M223 58c-7-7-18-7-25 0 7 7 18 7 25 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M245 56c-7-7-18-7-25 0 7 7 18 7 25 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M232 50c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M214 48c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M232 46c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M254 46c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M208 44c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M228 40c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M248 40c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M268 44c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.03" />
+
+   <path d="M286 48c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M304 52c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M322 60c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M334 70c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M210 60c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M190 70c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <path d="M244 58c-9-9-24-9-33 0 9 9 24 9 33 0z" fill="#FFFFFF" opacity="0.02" />
+
+   <circle cx="228" cy="228" r="112" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="8" fill="none" />
+
+   <path d="M206 118c-12-24-39-36-64-30 20-25 52-32 78-18z" fill="#C3F7D4" opacity="0.6" />
+   <path d="M228 110c12-24 39-36 64-30-20-25-52-32-78-18z" fill="#69D08A" opacity="0.4" />
+   <path d="M232 112c-12-18-32-28-53-26 12-18 32-28 53-26z" fill="#4AB975" opacity="0.65" />
+
+   <g transform="translate(150 180)">
+      <circle cx="40" cy="40" r="38" fill="#FFFFFF" opacity="0.05" />
+      <circle cx="190" cy="30" r="26" fill="#FFFFFF" opacity="0.08" />
+   </g>
+
+   <g transform="translate(210 112)">
+      <path d="M18 0C8 12 3 28 6 44c14-4 26-14 32-28z" fill="url(#leaf)" />
+      <path d="M38 14C30 26 18 36 4 38c-4-16 2-32 12-44 8 10 16 19 22 6z" fill="#1F6B45" opacity="0.25" />
+   </g>
 </svg>

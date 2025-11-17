@@ -151,7 +151,7 @@ if ($LASTEXITCODE -eq 0) {
     # Install APK
     Write-Host "Installing APK..." -ForegroundColor Yellow
     # Always do a clean standard install (no fastdeploy)
-    & $adbCmd -s $deviceId uninstall com.example.unopomodoro | Out-Null
+    & $adbCmd -s $deviceId uninstall com.marvijocode.pomodoro | Out-Null
     & $adbCmd -s $deviceId install -r "$($apk.FullName)"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "APK install failed." -ForegroundColor Red
@@ -159,7 +159,7 @@ if ($LASTEXITCODE -eq 0) {
     }
 
     # Launch the app using package id from csproj
-    $packageId = 'com.example.unopomodoro'
+    $packageId = 'com.marvijocode.pomodoro'
     Write-Host "Launching $packageId ..." -ForegroundColor Yellow
     & $adbCmd -s $deviceId shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 | Out-Null
     Write-Host "App launched." -ForegroundColor Green
