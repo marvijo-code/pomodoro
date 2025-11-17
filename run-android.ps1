@@ -1,4 +1,5 @@
 # PowerShell script to build and run the Uno Pomodoro Android app
+cd UnoPomodoro
 
 Write-Host "Building and running Uno Pomodoro Android app..." -ForegroundColor Green
 

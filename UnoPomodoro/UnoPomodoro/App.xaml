@@ -79,12 +79,12 @@
       </Style>
 
       <Style x:Key="TimerDisplayStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="72" />
+        <Setter Property="FontSize" Value="96" />
         <Setter Property="FontWeight" Value="Light" />
         <Setter Property="FontFamily" Value="{StaticResource DefaultFont}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{StaticResource OnSurfaceColor}" />
-        <Setter Property="Margin" Value="0,20,0,20" />
+        <Setter Property="Margin" Value="0,24,0,16" />
       </Style>
 
       <Style x:Key="CardStyle" TargetType="Border">

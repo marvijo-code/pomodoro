@@ -1,0 +1,77 @@
+name: Android Release Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install .NET workloads
+      run: |
+        dotnet workload restore
+      working-directory: UnoPomodoro
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: UnoPomodoro
+
+    - name: Build Release APK
+      run: dotnet build -c Release -f net9.0-android
+      working-directory: UnoPomodoro/UnoPomodoro
+
+    - name: Find APK
+      id: find_apk
+      shell: pwsh
+      run: |
+        $apk = Get-ChildItem -Path "UnoPomodoro/UnoPomodoro/bin/Release/net9.0-android" -Filter "*.apk" -Recurse | Select-Object -First 1
+        if ($apk) {
+          echo "APK_PATH=$($apk.FullName)" >> $env:GITHUB_OUTPUT
+          echo "APK_NAME=$($apk.Name)" >> $env:GITHUB_OUTPUT
+          $size = [math]::Round($apk.Length / 1MB, 2)
+          echo "APK_SIZE=$size MB" >> $env:GITHUB_OUTPUT
+        }
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: uno-pomodoro-apk
+        path: ${{ steps.find_apk.outputs.APK_PATH }}
+        retention-days: 30
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ steps.find_apk.outputs.APK_PATH }}
+        body: |
+          ## UnoPomodoro Android Release
+
+          **APK Size:** ${{ steps.find_apk.outputs.APK_SIZE }}
+
+          ### Features
+          - Professional Material Design 3 dark theme
+          - Pomodoro timer with customizable work/break intervals
+          - Task management with SQLite persistence
+          - Notification sounds with 3x repeat
+          - Analog clock visualization
+          - Session history and statistics
+
+          ### Installation
+          Download the APK and install on your Android device (Android 5.0+)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

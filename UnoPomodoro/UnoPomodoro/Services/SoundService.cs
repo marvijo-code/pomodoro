@@ -10,6 +10,8 @@ public class SoundService : IDisposable
 {
     private MediaPlayer? _mediaPlayer;
     private bool _isPlaying = false;
+    private int _repeatCount = 0;
+    private const int MAX_REPEATS = 3;
 
     public SoundService()
     {
@@ -21,13 +23,12 @@ public class SoundService : IDisposable
     public void PlayNotificationSound()
     {
         if (_isPlaying || _mediaPlayer == null) return;
-        
+
         try
         {
-            // Load the notification sound from assets
-            _mediaPlayer.Source = MediaSource.CreateFromUri(new Uri("ms-appx:///Assets/Audio/notification.wav"));
-            _mediaPlayer.Play();
-            _isPlaying = true;
+            // Reset repeat counter and start playing
+            _repeatCount = 0;
+            PlaySound();
         }
         catch (Exception ex)
         {
@@ -36,18 +37,41 @@ public class SoundService : IDisposable
         }
     }
 
+    private void PlaySound()
+    {
+        if (_mediaPlayer == null) return;
+
+        // Load the notification sound from assets
+        _mediaPlayer.Source = MediaSource.CreateFromUri(new Uri("ms-appx:///Assets/Audio/notification.wav"));
+        _mediaPlayer.Play();
+        _isPlaying = true;
+    }
+
     public void StopNotificationSound()
     {
         if (_mediaPlayer != null && _isPlaying)
         {
             _mediaPlayer.Pause();
             _isPlaying = false;
+            _repeatCount = 0;
         }
     }
 
     private void OnMediaEnded(MediaPlayer sender, object args)
     {
-        _isPlaying = false;
+        _repeatCount++;
+
+        if (_repeatCount < MAX_REPEATS)
+        {
+            // Play the sound again
+            PlaySound();
+        }
+        else
+        {
+            // All repeats completed
+            _isPlaying = false;
+            _repeatCount = 0;
+        }
     }
 
     public void Dispose()
