@@ -1,7 +1,10 @@
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System;
+using System.Collections.Generic;
 
 namespace UnoPomodoro.Controls
 {
@@ -18,6 +21,8 @@ namespace UnoPomodoro.Controls
         public static readonly DependencyProperty ClockSizeProperty =
             DependencyProperty.Register(nameof(ClockSize), typeof(double), typeof(AnalogClock),
                 new PropertyMetadata(200.0, OnClockSizeChanged));
+
+        private readonly List<Line> _hourMarkers = new();
 
         public TimeSpan TimeLeft
         {
@@ -45,7 +50,7 @@ namespace UnoPomodoro.Controls
 
         private void AnalogClock_Loaded(object sender, RoutedEventArgs e)
         {
-            UpdateClock();
+            UpdateClockLayout();
         }
 
         private static void OnTimeLeftChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -66,85 +71,138 @@ namespace UnoPomodoro.Controls
 
         private void UpdateClockLayout()
         {
-            double center = ClockSize / 2;
-
-            // Position hour markers
-            if (Marker12 != null)
+            if (ClockCanvas == null)
             {
-                Canvas.SetLeft(Marker12, center);
-                Canvas.SetTop(Marker12, 10);
+                return;
             }
 
-            if (Marker3 != null)
+            EnsureMarkers();
+
+            double size = ClockSize > 0 ? ClockSize : 200;
+            double center = size / 2;
+            double radius = center - 8;
+
+            ClockCanvas.Width = size;
+            ClockCanvas.Height = size;
+
+            if (ClockFace != null)
             {
-                Canvas.SetLeft(Marker3, ClockSize - 25);
-                Canvas.SetTop(Marker3, center);
-                Marker3.RenderTransform = new RotateTransform { Angle = 90, CenterX = 7.5, CenterY = 7.5 };
+                ClockFace.Width = size;
+                ClockFace.Height = size;
             }
 
-            if (Marker6 != null)
+            if (MarkerLayer != null)
             {
-                Canvas.SetLeft(Marker6, center);
-                Canvas.SetTop(Marker6, ClockSize - 25);
+                MarkerLayer.Width = size;
+                MarkerLayer.Height = size;
             }
 
-            if (Marker9 != null)
+            for (int i = 0; i < _hourMarkers.Count; i++)
             {
-                Canvas.SetLeft(Marker9, 10);
-                Canvas.SetTop(Marker9, center);
-                Marker9.RenderTransform = new RotateTransform { Angle = 90, CenterX = 7.5, CenterY = 7.5 };
+                var marker = _hourMarkers[i];
+                double angleDegrees = i * 30d;
+                double angleRadians = angleDegrees * Math.PI / 180d;
+
+                double outer = radius;
+                double innerOffset = i % 3 == 0 ? 18 : 12;
+                double inner = radius - innerOffset;
+
+                double cos = Math.Cos(angleRadians);
+                double sin = Math.Sin(angleRadians);
+
+                marker.X1 = center + inner * cos;
+                marker.Y1 = center + inner * sin;
+                marker.X2 = center + outer * cos;
+                marker.Y2 = center + outer * sin;
             }
 
-            // Update hands
+            if (CenterDot != null)
+            {
+                Canvas.SetLeft(CenterDot, center - CenterDot.Width / 2);
+                Canvas.SetTop(CenterDot, center - CenterDot.Height / 2);
+            }
+
             UpdateClock();
         }
 
         private void UpdateClock()
         {
-            if (ClockCanvas == null) return;
+            if (ClockCanvas == null)
+            {
+                return;
+            }
 
-            double center = ClockSize / 2;
-            double radius = ClockSize / 2;
+            EnsureMarkers();
 
-            // Calculate elapsed time
+            double size = ClockSize > 0 ? ClockSize : 200;
+            double center = size / 2;
+            double radius = center - 8;
+
             var elapsed = TotalTime - TimeLeft;
-            double totalMinutes = TotalTime.TotalMinutes;
-            double elapsedMinutes = elapsed.TotalMinutes;
+            if (elapsed < TimeSpan.Zero)
+            {
+                elapsed = TimeSpan.Zero;
+            }
+            if (elapsed > TotalTime)
+            {
+                elapsed = TotalTime;
+            }
 
-            // Calculate angles (12 o'clock is 0 degrees, clockwise)
-            // For a countdown timer, we want to show progress
-            double minuteAngle = (elapsedMinutes / totalMinutes) * 360;
-            double hourAngle = (elapsedMinutes / totalMinutes) * 360; // Same as minute for countdown
+            double elapsedSeconds = elapsed.TotalSeconds;
+            double seconds = elapsedSeconds % 60d;
+            double minutes = (elapsedSeconds / 60d) % 60d;
+            double hours = (elapsedSeconds / 3600d) % 12d;
 
-            // Minute hand (70% of radius)
-            double minuteLength = radius * 0.7;
-            UpdateHand(MinuteHand, center, minuteLength, minuteAngle);
+            double secondAngle = (seconds / 60d) * 360d;
+            double minuteAngle = (minutes / 60d) * 360d + (seconds / 60d) * 6d;
+            double hourAngle = (hours / 12d) * 360d + (minutes / 60d) * 30d;
 
-            // Hour hand (50% of radius)
-            double hourLength = radius * 0.5;
-            UpdateHand(HourHand, center, hourLength, hourAngle);
-
-            // Center the center dot
-            Canvas.SetLeft(ClockCanvas.Children[^1] as Ellipse, center - 6);
-            Canvas.SetTop(ClockCanvas.Children[^1] as Ellipse, center - 6);
+            UpdateHand(SecondHand, center, radius * 0.9, secondAngle);
+            UpdateHand(MinuteHand, center, radius * 0.75, minuteAngle);
+            UpdateHand(HourHand, center, radius * 0.55, hourAngle);
         }
 
         private void UpdateHand(Line hand, double center, double length, double angleDegrees)
         {
             if (hand == null) return;
 
-            // Convert angle to radians (0 degrees is at 12 o'clock, -90 offset)
-            double angleRadians = (angleDegrees - 90) * Math.PI / 180;
-
-            // Calculate end point
+            double angleRadians = (angleDegrees - 90d) * Math.PI / 180d;
             double endX = center + length * Math.Cos(angleRadians);
             double endY = center + length * Math.Sin(angleRadians);
 
-            // Set hand position
-            Canvas.SetLeft(hand, center);
-            Canvas.SetTop(hand, center);
-            hand.X2 = endX - center;
-            hand.Y2 = endY - center;
+            hand.X1 = center;
+            hand.Y1 = center;
+            hand.X2 = endX;
+            hand.Y2 = endY;
+        }
+
+        private void EnsureMarkers()
+        {
+            if (MarkerLayer == null || _hourMarkers.Count > 0)
+            {
+                return;
+            }
+
+            Brush markerBrush;
+            if (Application.Current?.Resources.TryGetValue("OnSurfaceVariantColor", out var resource) == true && resource is Brush brush)
+            {
+                markerBrush = brush;
+            }
+            else
+            {
+                markerBrush = new SolidColorBrush(Colors.White);
+            }
+
+            for (int i = 0; i < 12; i++)
+            {
+                var marker = new Line
+                {
+                    Stroke = markerBrush,
+                    StrokeThickness = i % 3 == 0 ? 3 : 2
+                };
+                MarkerLayer.Children.Add(marker);
+                _hourMarkers.Add(marker);
+            }
         }
     }
 }

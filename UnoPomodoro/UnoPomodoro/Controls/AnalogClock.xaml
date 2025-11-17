@@ -1,45 +1,50 @@
 <UserControl x:Class="UnoPomodoro.Controls.AnalogClock"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+     x:Name="ClockRoot"
+     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+     mc:Ignorable="d">
 
-  <Grid Width="{Binding ClockSize}" Height="{Binding ClockSize}" Background="Transparent">
-    <Canvas x:Name="ClockCanvas">
-      <!-- Clock Circle Background -->
-      <Ellipse Width="{Binding ClockSize}"
-               Height="{Binding ClockSize}"
-               Stroke="{StaticResource OutlineColor}"
-               StrokeThickness="3"
-               Fill="Transparent" />
+  <Grid Width="{Binding ClockSize, ElementName=ClockRoot}"
+    Height="{Binding ClockSize, ElementName=ClockRoot}"
+    Background="Transparent">
+    <Canvas x:Name="ClockCanvas"
+    Width="{Binding ClockSize, ElementName=ClockRoot}"
+    Height="{Binding ClockSize, ElementName=ClockRoot}">
+  <!-- Clock Circle Background -->
+  <Ellipse x:Name="ClockFace"
+       Width="{Binding ClockSize, ElementName=ClockRoot}"
+       Height="{Binding ClockSize, ElementName=ClockRoot}"
+       Stroke="{StaticResource OutlineColor}"
+       StrokeThickness="3"
+       Fill="Transparent" />
 
-      <!-- Hour Markers -->
-      <Line x:Name="Marker12" X1="0" Y1="0" X2="0" Y2="15" Stroke="{StaticResource OnSurfaceColor}" StrokeThickness="3" />
-      <Line x:Name="Marker3" X1="0" Y1="0" X2="0" Y2="15" Stroke="{StaticResource OnSurfaceColor}" StrokeThickness="3" />
-      <Line x:Name="Marker6" X1="0" Y1="0" X2="0" Y2="15" Stroke="{StaticResource OnSurfaceColor}" StrokeThickness="3" />
-      <Line x:Name="Marker9" X1="0" Y1="0" X2="0" Y2="15" Stroke="{StaticResource OnSurfaceColor}" StrokeThickness="3" />
+  <!-- Hour Markers Layer -->
+  <Canvas x:Name="MarkerLayer" />
 
-      <!-- Minute Hand (longer, thinner) -->
-      <Line x:Name="MinuteHand"
-            X1="0" Y1="0" X2="0" Y2="0"
-            Stroke="{StaticResource PrimaryColor}"
-            StrokeThickness="4"
-            StrokeStartLineCap="Round"
-            StrokeEndLineCap="Round" />
+  <!-- Minute Hand (longer, thinner) -->
+  <Line x:Name="MinuteHand"
+    X1="0" Y1="0" X2="0" Y2="0"
+    Stroke="{StaticResource PrimaryColor}"
+    StrokeThickness="5" />
 
-      <!-- Hour Hand (shorter, thicker) -->
-      <Line x:Name="HourHand"
-            X1="0" Y1="0" X2="0" Y2="0"
-            Stroke="{StaticResource SecondaryColor}"
-            StrokeThickness="6"
-            StrokeStartLineCap="Round"
-            StrokeEndLineCap="Round" />
+  <!-- Hour Hand (shorter, thicker) -->
+  <Line x:Name="HourHand"
+    X1="0" Y1="0" X2="0" Y2="0"
+    Stroke="{StaticResource SecondaryColor}"
+    StrokeThickness="7" />
 
-      <!-- Center Dot -->
-      <Ellipse Width="12" Height="12"
-               Fill="{StaticResource PrimaryColor}"
-               Canvas.Left="-6" Canvas.Top="-6" />
+  <!-- Second Hand (thin sweep) -->
+  <Line x:Name="SecondHand"
+    X1="0" Y1="0" X2="0" Y2="0"
+    Stroke="{StaticResource OnSurfaceColor}"
+    StrokeThickness="2" />
+
+  <!-- Center Dot -->
+  <Ellipse x:Name="CenterDot"
+       Width="14" Height="14"
+       Fill="{StaticResource PrimaryColor}" />
     </Canvas>
   </Grid>
 </UserControl>
