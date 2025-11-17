@@ -1,34 +1,60 @@
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI;
+using Windows.UI;
 
 namespace UnoPomodoro.Converters
 {
     public class ModeToColorConverter : IValueConverter
     {
+        private static readonly SolidColorBrush InactiveBrush = new(Colors.Gray);
+
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            var mode = value as string;
-            var targetMode = parameter as string;
-            
-            if (mode == targetMode)
+            if (value is not string mode)
             {
-                // Return red for pomodoro, blue for short break, green for long break
-                return new SolidColorBrush(mode switch
-                {
-                    "pomodoro" => Colors.Red,
-                    "shortBreak" => Colors.Blue,
-                    "longBreak" => Colors.Green,
-                    _ => Colors.Gray
-                });
+                return InactiveBrush;
             }
-            
-            return new SolidColorBrush(Colors.Gray);
+
+            var accentBrush = ResolveModeBrush(mode);
+
+            if (parameter is string targetMode && !string.IsNullOrEmpty(targetMode))
+            {
+                return mode == targetMode ? accentBrush : InactiveBrush;
+            }
+
+            return accentBrush;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)
         {
             throw new NotImplementedException();
+        }
+        private static Brush ResolveModeBrush(string mode)
+        {
+            return mode switch
+            {
+                "pomodoro" => GetBrushFromResource("PomodoroColor", Colors.Red),
+                "shortBreak" => GetBrushFromResource("ShortBreakColor", Colors.Blue),
+                "longBreak" => GetBrushFromResource("LongBreakColor", Colors.Green),
+                _ => InactiveBrush
+            };
+        }
+
+        private static Brush GetBrushFromResource(string resourceKey, Color fallback)
+        {
+            if (Application.Current?.Resources.TryGetValue(resourceKey, out var resource) == true)
+            {
+                return resource switch
+                {
+                    Brush brush => brush,
+                    Color color => new SolidColorBrush(color),
+                    _ => new SolidColorBrush(fallback)
+                };
+            }
+
+            return new SolidColorBrush(fallback);
         }
     }
 }

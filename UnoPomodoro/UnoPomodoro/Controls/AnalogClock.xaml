@@ -9,42 +9,30 @@
   <Grid Width="{Binding ClockSize, ElementName=ClockRoot}"
     Height="{Binding ClockSize, ElementName=ClockRoot}"
     Background="Transparent">
-    <Canvas x:Name="ClockCanvas"
-    Width="{Binding ClockSize, ElementName=ClockRoot}"
-    Height="{Binding ClockSize, ElementName=ClockRoot}">
-  <!-- Clock Circle Background -->
-  <Ellipse x:Name="ClockFace"
-       Width="{Binding ClockSize, ElementName=ClockRoot}"
-       Height="{Binding ClockSize, ElementName=ClockRoot}"
-       Stroke="{StaticResource OutlineColor}"
-       StrokeThickness="3"
-       Fill="Transparent" />
+    <Ellipse x:Name="ClockFace"
+     Width="{Binding ClockSize, ElementName=ClockRoot}"
+     Height="{Binding ClockSize, ElementName=ClockRoot}"
+     Stroke="{StaticResource OutlineColor}"
+     StrokeThickness="3"
+     Fill="Transparent" />
 
-  <!-- Hour Markers Layer -->
-  <Canvas x:Name="MarkerLayer" />
+        <Path x:Name="ProgressFill"
+          Fill="{Binding ProgressBrush, ElementName=ClockRoot}"
+          Opacity="0.3"
+          Stretch="Fill"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch" />
 
-  <!-- Minute Hand (longer, thinner) -->
-  <Line x:Name="MinuteHand"
-    X1="0" Y1="0" X2="0" Y2="0"
-    Stroke="{StaticResource PrimaryColor}"
-    StrokeThickness="5" />
+    <Line x:Name="SweepHand"
+      Stroke="{Binding ProgressBrush, ElementName=ClockRoot}"
+      StrokeThickness="6"
+      StrokeStartLineCap="Round"
+          StrokeEndLineCap="Round" />
 
-  <!-- Hour Hand (shorter, thicker) -->
-  <Line x:Name="HourHand"
-    X1="0" Y1="0" X2="0" Y2="0"
-    Stroke="{StaticResource SecondaryColor}"
-    StrokeThickness="7" />
-
-  <!-- Second Hand (thin sweep) -->
-  <Line x:Name="SecondHand"
-    X1="0" Y1="0" X2="0" Y2="0"
-    Stroke="{StaticResource OnSurfaceColor}"
-    StrokeThickness="2" />
-
-  <!-- Center Dot -->
-  <Ellipse x:Name="CenterDot"
-       Width="14" Height="14"
-       Fill="{StaticResource PrimaryColor}" />
-    </Canvas>
+    <Ellipse x:Name="CenterDot"
+     Width="16" Height="16"
+         Fill="{Binding ProgressBrush, ElementName=ClockRoot}"
+         HorizontalAlignment="Center"
+         VerticalAlignment="Center" />
   </Grid>
 </UserControl>

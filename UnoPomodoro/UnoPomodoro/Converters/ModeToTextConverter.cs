@@ -9,9 +9,16 @@ public class ModeToTextConverter : IValueConverter
     {
         if (value is string mode)
         {
-            return $"{mode} Mode";
+            return mode switch
+            {
+                "pomodoro" => "Pomodoro Mode",
+                "shortBreak" => "Short Break Mode",
+                "longBreak" => "Long Break Mode",
+                _ => $"{mode} Mode"
+            };
         }
-        return value?.ToString() ?? "";
+
+        return value?.ToString() ?? string.Empty;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)

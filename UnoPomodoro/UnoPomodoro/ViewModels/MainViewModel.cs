@@ -319,19 +319,23 @@ public partial class MainViewModel : ObservableObject
         {
             SessionInfo = "Ready to start";
         }
-        else if (IsRunning)
-        {
-            var completedTasks = Tasks.Count(t => t.Completed);
-            SessionInfo = $"{completedTasks}/{Tasks.Count} tasks completed";
-        }
-        else if (Tasks.Count > 0)
-        {
-            var completedTasks = Tasks.Count(t => t.Completed);
-            SessionInfo = $"{completedTasks}/{Tasks.Count} tasks ready";
-        }
         else
         {
-            SessionInfo = "Session ready";
+            var totalTasks = Tasks.Count;
+            var completedTasks = Tasks.Count(t => t.Completed);
+
+            if (totalTasks == 0)
+            {
+                SessionInfo = "0/0 ✅";
+            }
+            else if (IsRunning)
+            {
+                SessionInfo = $"{completedTasks}/{totalTasks} tasks completed";
+            }
+            else
+            {
+                SessionInfo = $"{completedTasks}/{totalTasks} tasks ready";
+            }
         }
     }
 

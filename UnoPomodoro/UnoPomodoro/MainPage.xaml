@@ -126,9 +126,9 @@
                     HorizontalAlignment="Stretch"
                     Margin="0"
                     Padding="8,12">
-              <TextBlock Text="Short"
-                         TextAlignment="Center"
-                         TextWrapping="NoWrap" />
+              <TextBlock Text="Short Break Mode"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap" />
             </Button>
           </Border>
 
@@ -143,9 +143,9 @@
                     HorizontalAlignment="Stretch"
                     Margin="0"
                     Padding="8,12">
-              <TextBlock Text="Long"
-                         TextAlignment="Center"
-                         TextWrapping="NoWrap" />
+              <TextBlock Text="Long Break Mode"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap" />
             </Button>
           </Border>
         </Grid>
@@ -162,6 +162,7 @@
             <customControls:AnalogClock
                 TimeLeft="{Binding TimeLeft}"
                 TotalTime="{Binding TotalDuration}"
+              ProgressBrush="{Binding Mode, Converter={StaticResource ModeToColorConverter}}"
               ClockSize="240"
                 HorizontalAlignment="Center" />
 

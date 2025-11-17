@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System;
-using System.Collections.Generic;
+using Windows.Foundation;
 
 namespace UnoPomodoro.Controls
 {
@@ -22,7 +22,9 @@ namespace UnoPomodoro.Controls
             DependencyProperty.Register(nameof(ClockSize), typeof(double), typeof(AnalogClock),
                 new PropertyMetadata(200.0, OnClockSizeChanged));
 
-        private readonly List<Line> _hourMarkers = new();
+        public static readonly DependencyProperty ProgressBrushProperty =
+            DependencyProperty.Register(nameof(ProgressBrush), typeof(Brush), typeof(AnalogClock),
+                new PropertyMetadata(null, OnVisualPropertyChanged));
 
         public TimeSpan TimeLeft
         {
@@ -42,9 +44,16 @@ namespace UnoPomodoro.Controls
             set => SetValue(ClockSizeProperty, value);
         }
 
+        public Brush ProgressBrush
+        {
+            get => (Brush)GetValue(ProgressBrushProperty);
+            set => SetValue(ProgressBrushProperty, value);
+        }
+
         public AnalogClock()
         {
             this.InitializeComponent();
+            ProgressBrush = GetDefaultBrush();
             this.Loaded += AnalogClock_Loaded;
         }
 
@@ -69,21 +78,17 @@ namespace UnoPomodoro.Controls
             }
         }
 
+        private static void OnVisualPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is AnalogClock clock)
+            {
+                clock.UpdateClock();
+            }
+        }
+
         private void UpdateClockLayout()
         {
-            if (ClockCanvas == null)
-            {
-                return;
-            }
-
-            EnsureMarkers();
-
-            double size = ClockSize > 0 ? ClockSize : 200;
-            double center = size / 2;
-            double radius = center - 8;
-
-            ClockCanvas.Width = size;
-            ClockCanvas.Height = size;
+            double size = Math.Max(ClockSize, 60);
 
             if (ClockFace != null)
             {
@@ -91,118 +96,90 @@ namespace UnoPomodoro.Controls
                 ClockFace.Height = size;
             }
 
-            if (MarkerLayer != null)
-            {
-                MarkerLayer.Width = size;
-                MarkerLayer.Height = size;
-            }
-
-            for (int i = 0; i < _hourMarkers.Count; i++)
-            {
-                var marker = _hourMarkers[i];
-                double angleDegrees = i * 30d;
-                double angleRadians = angleDegrees * Math.PI / 180d;
-
-                double outer = radius;
-                double innerOffset = i % 3 == 0 ? 18 : 12;
-                double inner = radius - innerOffset;
-
-                double cos = Math.Cos(angleRadians);
-                double sin = Math.Sin(angleRadians);
-
-                marker.X1 = center + inner * cos;
-                marker.Y1 = center + inner * sin;
-                marker.X2 = center + outer * cos;
-                marker.Y2 = center + outer * sin;
-            }
-
-            if (CenterDot != null)
-            {
-                Canvas.SetLeft(CenterDot, center - CenterDot.Width / 2);
-                Canvas.SetTop(CenterDot, center - CenterDot.Height / 2);
-            }
-
             UpdateClock();
         }
 
         private void UpdateClock()
         {
-            if (ClockCanvas == null)
+            if (TotalTime <= TimeSpan.Zero)
             {
                 return;
             }
 
-            EnsureMarkers();
+            var totalSeconds = Math.Max(1d, TotalTime.TotalSeconds);
+            var elapsedSeconds = Math.Clamp((TotalTime - TimeLeft).TotalSeconds, 0d, totalSeconds);
+            var progress = elapsedSeconds / totalSeconds;
 
-            double size = ClockSize > 0 ? ClockSize : 200;
+            UpdateSweep(progress);
+        }
+
+        private void UpdateSweep(double progress)
+        {
+            if (ClockFace == null || SweepHand == null || ProgressFill == null)
+            {
+                return;
+            }
+
+            double size = Math.Max(ClockSize, 60);
             double center = size / 2;
             double radius = center - 8;
 
-            var elapsed = TotalTime - TimeLeft;
-            if (elapsed < TimeSpan.Zero)
+            double angle = progress * 360d;
+            double radians = (angle - 90d) * Math.PI / 180d;
+            double handX = center + radius * Math.Cos(radians);
+            double handY = center + radius * Math.Sin(radians);
+
+            SweepHand.X1 = center;
+            SweepHand.Y1 = center;
+            SweepHand.X2 = handX;
+            SweepHand.Y2 = handY;
+
+            if (progress <= 0)
             {
-                elapsed = TimeSpan.Zero;
-            }
-            if (elapsed > TotalTime)
-            {
-                elapsed = TotalTime;
-            }
-
-            double elapsedSeconds = elapsed.TotalSeconds;
-            double seconds = elapsedSeconds % 60d;
-            double minutes = (elapsedSeconds / 60d) % 60d;
-            double hours = (elapsedSeconds / 3600d) % 12d;
-
-            double secondAngle = (seconds / 60d) * 360d;
-            double minuteAngle = (minutes / 60d) * 360d + (seconds / 60d) * 6d;
-            double hourAngle = (hours / 12d) * 360d + (minutes / 60d) * 30d;
-
-            UpdateHand(SecondHand, center, radius * 0.9, secondAngle);
-            UpdateHand(MinuteHand, center, radius * 0.75, minuteAngle);
-            UpdateHand(HourHand, center, radius * 0.55, hourAngle);
-        }
-
-        private void UpdateHand(Line hand, double center, double length, double angleDegrees)
-        {
-            if (hand == null) return;
-
-            double angleRadians = (angleDegrees - 90d) * Math.PI / 180d;
-            double endX = center + length * Math.Cos(angleRadians);
-            double endY = center + length * Math.Sin(angleRadians);
-
-            hand.X1 = center;
-            hand.Y1 = center;
-            hand.X2 = endX;
-            hand.Y2 = endY;
-        }
-
-        private void EnsureMarkers()
-        {
-            if (MarkerLayer == null || _hourMarkers.Count > 0)
-            {
+                ProgressFill.Data = null;
                 return;
             }
 
-            Brush markerBrush;
-            if (Application.Current?.Resources.TryGetValue("OnSurfaceVariantColor", out var resource) == true && resource is Brush brush)
+            if (progress >= 1)
             {
-                markerBrush = brush;
-            }
-            else
-            {
-                markerBrush = new SolidColorBrush(Colors.White);
+                ProgressFill.Data = new EllipseGeometry
+                {
+                    Center = new Point(center, center),
+                    RadiusX = radius,
+                    RadiusY = radius
+                };
+                return;
             }
 
-            for (int i = 0; i < 12; i++)
+            var startPoint = new Point(center, center - radius);
+            double sweepRadians = angle * Math.PI / 180d;
+            var arcEndPoint = new Point(
+                center + radius * Math.Sin(sweepRadians),
+                center - radius * Math.Cos(sweepRadians));
+
+            var geometry = new PathGeometry();
+            var figure = new PathFigure { StartPoint = new Point(center, center) };
+            figure.Segments.Add(new LineSegment { Point = startPoint });
+            figure.Segments.Add(new ArcSegment
             {
-                var marker = new Line
-                {
-                    Stroke = markerBrush,
-                    StrokeThickness = i % 3 == 0 ? 3 : 2
-                };
-                MarkerLayer.Children.Add(marker);
-                _hourMarkers.Add(marker);
+                Point = arcEndPoint,
+                Size = new Size(radius, radius),
+                SweepDirection = SweepDirection.Clockwise,
+                IsLargeArc = angle > 180d
+            });
+            figure.Segments.Add(new LineSegment { Point = new Point(center, center) });
+            geometry.Figures.Add(figure);
+            ProgressFill.Data = geometry;
+        }
+
+        private Brush GetDefaultBrush()
+        {
+            if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var resource) == true && resource is Brush brush)
+            {
+                return brush;
             }
+
+            return new SolidColorBrush(Colors.Red);
         }
     }
 }
