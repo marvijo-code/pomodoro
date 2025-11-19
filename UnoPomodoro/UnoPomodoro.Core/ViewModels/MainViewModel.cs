@@ -115,9 +115,7 @@ public partial class MainViewModel : ObservableObject
         // Auto-advance to next session type
         await AutoAdvanceSession();
 
-        await Task.Run(async () => {
-            await _notificationService.ShowNotificationAsync("Pomodoro Completed", "Your timer has finished!");
-        });
+        await _notificationService.ShowNotificationAsync("Pomodoro Completed", "Your timer has finished!");
     }
 
     private async Task AutoAdvanceSession()

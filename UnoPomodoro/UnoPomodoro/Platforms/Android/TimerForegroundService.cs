@@ -36,10 +36,6 @@ namespace UnoPomodoro.Platforms.Android
             {
                  StartForeground(NotificationId, notification, global::Android.Content.PM.ForegroundService.TypeSpecialUse);
             }
-            else if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
-            {
-                 StartForeground(NotificationId, notification, global::Android.Content.PM.ForegroundService.TypeManifest);
-            }
             else
             {
                 StartForeground(NotificationId, notification);
