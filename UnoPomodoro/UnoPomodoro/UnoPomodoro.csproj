@@ -33,11 +33,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net9.0-android'">
     <!-- Ship a single arm64 build to avoid bundling emulator/x86 native libs -->
-    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
     <!-- Use the assembly store/linker so we do not embed every managed assembly + pdb verbatim -->
-    <EmbedAssembliesIntoApk>false</EmbedAssembliesIntoApk>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <AndroidUseAssemblyStore>true</AndroidUseAssemblyStore>
-    <AndroidStoreUncompressedFileExtensions></AndroidStoreUncompressedFileExtensions>
+    <AndroidStoreUncompressedFileExtensions>.so</AndroidStoreUncompressedFileExtensions>
     <!-- Trim unused framework code to keep lib_Mono.Android.so small while staying safe for Uno -->
     <AndroidLinkMode>SdkOnly</AndroidLinkMode>
   </PropertyGroup>
