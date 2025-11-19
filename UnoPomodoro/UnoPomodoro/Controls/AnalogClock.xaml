@@ -18,10 +18,9 @@
 
         <Path x:Name="ProgressFill"
           Fill="{Binding ProgressBrush, ElementName=ClockRoot}"
-          Opacity="0.3"
-          Stretch="Fill"
-          HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch" />
+          Stretch="None"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top" />
 
     <Line x:Name="SweepHand"
       Stroke="{Binding ProgressBrush, ElementName=ClockRoot}"

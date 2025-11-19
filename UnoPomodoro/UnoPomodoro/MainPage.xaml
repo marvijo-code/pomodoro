@@ -30,109 +30,18 @@
     <!-- ViewModel will be set programmatically in code-behind -->
   </Page.DataContext>
 
-  <Grid>
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-    </Grid.RowDefinitions>
-
-    <!-- Navigation Bar -->
-    <Grid Grid.Row="0"
-          x:Name="TopNavGrid"
-          Background="{StaticResource SurfaceColor}"
-          Padding="16,8">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-      </Grid.RowDefinitions>
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
-
-      <VisualStateManager.VisualStateGroups>
-        <VisualStateGroup x:Name="TopNavStates">
-          <VisualState x:Name="TopNavCompact">
-            <VisualState.StateTriggers>
-              <AdaptiveTrigger MinWindowWidth="0" />
-            </VisualState.StateTriggers>
-            <VisualState.Setters>
-              <Setter Target="NavButtonPanel.Orientation" Value="Vertical" />
-              <Setter Target="NavButtonPanel.HorizontalAlignment" Value="Stretch" />
-              <Setter Target="UtilityButtonPanel.(Grid.Row)" Value="1" />
-              <Setter Target="UtilityButtonPanel.(Grid.Column)" Value="0" />
-              <Setter Target="UtilityButtonPanel.(Grid.ColumnSpan)" Value="2" />
-              <Setter Target="UtilityButtonPanel.HorizontalAlignment" Value="Left" />
-            </VisualState.Setters>
-          </VisualState>
-
-          <VisualState x:Name="TopNavWide">
-            <VisualState.StateTriggers>
-              <AdaptiveTrigger MinWindowWidth="600" />
-            </VisualState.StateTriggers>
-            <VisualState.Setters>
-              <Setter Target="NavButtonPanel.Orientation" Value="Horizontal" />
-              <Setter Target="NavButtonPanel.HorizontalAlignment" Value="Left" />
-              <Setter Target="UtilityButtonPanel.(Grid.Row)" Value="0" />
-              <Setter Target="UtilityButtonPanel.(Grid.Column)" Value="1" />
-              <Setter Target="UtilityButtonPanel.(Grid.ColumnSpan)" Value="1" />
-              <Setter Target="UtilityButtonPanel.HorizontalAlignment" Value="Right" />
-            </VisualState.Setters>
-          </VisualState>
-        </VisualStateGroup>
-      </VisualStateManager.VisualStateGroups>
-
-      <StackPanel x:Name="NavButtonPanel"
-                  Grid.Row="0"
-                  Grid.Column="0"
-                  Orientation="Horizontal"
-                  Spacing="12"
-                  VerticalAlignment="Center">
-        <Button Content="Timer"
-                Click="OnTimerClick"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="12,8"
-                MinWidth="70" />
-        <Button Content="Dashboard"
-                Click="OnDashboardClick"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="12,8"
-                MinWidth="90" />
-        <Button Content="History"
-                Click="OnHistoryClick"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="12,8"
-                MinWidth="70" />
-        <Button Content="Settings"
-                Click="OnSettingsClick"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="12,8"
-                MinWidth="70" />
-      </StackPanel>
-
-            <StackPanel x:Name="UtilityButtonPanel"
-            Grid.Row="0"
-            Grid.Column="1"
-            Orientation="Horizontal"
-            Spacing="8"
-            VerticalAlignment="Center">
-        <Button Content="🔊"
-                Command="{Binding ToggleSoundCommand}"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="8"
-                Width="40"
-                Height="40" />
-        <Button Content="⚙️"
-                Click="OnSettingsClick"
-                Style="{StaticResource SecondaryButtonStyle}"
-                Padding="8"
-                Width="40"
-                Height="40" />
-      </StackPanel>
-    </Grid>
-
-    <!-- Main Content -->
-    <ScrollViewer Grid.Row="1" Padding="16" HorizontalScrollBarVisibility="Disabled">
+  <NavigationView x:Name="NavView"
+                  PaneDisplayMode="LeftMinimal"
+                  IsPaneOpen="False"
+                  ItemInvoked="NavView_ItemInvoked">
+    <NavigationView.MenuItems>
+      <NavigationViewItem Content="Timer" Tag="Timer" Icon="Clock" />
+      <NavigationViewItem Content="Dashboard" Tag="Dashboard" Icon="ViewAll" />
+      <NavigationViewItem Content="History" Tag="History" Icon="Library" />
+      <NavigationViewItem Content="Settings" Tag="Settings" Icon="Setting" />
+    </NavigationView.MenuItems>
+    <NavigationView.Content>
+      <ScrollViewer Padding="16" HorizontalScrollBarVisibility="Disabled">
       <Grid RowSpacing="24" MaxWidth="720" HorizontalAlignment="Center">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
@@ -157,7 +66,6 @@
                   Padding="8">
             <Button Command="{Binding ChangeModeCommand}"
                     CommandParameter="pomodoro"
-                    Style="{StaticResource PrimaryButtonStyle}"
                     Content="Pomodoro"
                     HorizontalAlignment="Stretch"
                     Margin="0"
@@ -171,7 +79,6 @@
                   Padding="8">
             <Button Command="{Binding ChangeModeCommand}"
                     CommandParameter="shortBreak"
-                    Style="{StaticResource PrimaryButtonStyle}"
                     HorizontalAlignment="Stretch"
                     Margin="0"
                     Padding="8,12">
@@ -188,7 +95,6 @@
                   Padding="8">
             <Button Command="{Binding ChangeModeCommand}"
                     CommandParameter="longBreak"
-                    Style="{StaticResource PrimaryButtonStyle}"
                     HorizontalAlignment="Stretch"
                     Margin="0"
                     Padding="8,12">
@@ -374,5 +280,6 @@
         </Border>
       </Grid>
     </ScrollViewer>
-  </Grid>
+    </NavigationView.Content>
+  </NavigationView>
 </Page>

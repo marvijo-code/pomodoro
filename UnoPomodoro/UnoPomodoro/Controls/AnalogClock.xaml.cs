@@ -142,12 +142,24 @@ namespace UnoPomodoro.Controls
 
             if (progress >= 1)
             {
-                ProgressFill.Data = new EllipseGeometry
+                var fullCircleGeometry = new PathGeometry();
+                var fullCircleFigure = new PathFigure { StartPoint = new Point(center, center - radius) };
+                fullCircleFigure.Segments.Add(new ArcSegment
                 {
-                    Center = new Point(center, center),
-                    RadiusX = radius,
-                    RadiusY = radius
-                };
+                    Point = new Point(center, center + radius),
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = false
+                });
+                fullCircleFigure.Segments.Add(new ArcSegment
+                {
+                    Point = new Point(center, center - radius),
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = false
+                });
+                fullCircleGeometry.Figures.Add(fullCircleFigure);
+                ProgressFill.Data = fullCircleGeometry;
                 return;
             }
 

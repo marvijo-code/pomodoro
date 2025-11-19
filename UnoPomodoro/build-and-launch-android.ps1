@@ -58,10 +58,10 @@ if ($LASTEXITCODE -eq 0) {
     }
 
     # Ensure a device/emulator is connected and ready
-    $devices = (& $adbCmd devices) |
+    $devices = @((& $adbCmd devices) |
         ForEach-Object { if ($_ -match '^(\S+)\s+device$') { $matches[1] } } |
         Where-Object { $_ } |
-        Select-Object -Unique
+        Select-Object -Unique)
     if (-not $devices -or $devices.Count -eq 0) {
         Write-Host "No device detected. Attempting to start an Android emulator..." -ForegroundColor Yellow
 
@@ -117,10 +117,10 @@ if ($LASTEXITCODE -eq 0) {
         Write-Host "Emulator boot completed." -ForegroundColor Green
 
         # Refresh device list (only entries with "device" status)
-        $devices = (& $adbCmd devices) |
+        $devices = @((& $adbCmd devices) |
             ForEach-Object { if ($_ -match '^(\S+)\s+device$') { $matches[1] } } |
             Where-Object { $_ } |
-            Select-Object -Unique
+            Select-Object -Unique)
         if (-not $devices -or $devices.Count -eq 0) {
             Write-Host "Error: Emulator failed to register as a device." -ForegroundColor Red
             exit 1

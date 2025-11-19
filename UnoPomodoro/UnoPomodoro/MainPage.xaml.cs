@@ -69,6 +69,28 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void NavView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        if (args.InvokedItemContainer is NavigationViewItem item)
+        {
+            switch (item.Tag?.ToString())
+            {
+                case "Timer":
+                    OnTimerClick(sender, null);
+                    break;
+                case "Dashboard":
+                    OnDashboardClick(sender, null);
+                    break;
+                case "History":
+                    OnHistoryClick(sender, null);
+                    break;
+                case "Settings":
+                    OnSettingsClick(sender, null);
+                    break;
+            }
+        }
+    }
+
     public MainViewModel ViewModel
     {
         get => _viewModel;
