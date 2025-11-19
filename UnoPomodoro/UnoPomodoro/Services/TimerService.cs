@@ -1,23 +1,23 @@
 using System;
-using Microsoft.UI.Xaml;
+using System.Threading;
+using Microsoft.UI.Dispatching;
 
 namespace UnoPomodoro.Services
 {
-    public class TimerService
+    public partial class TimerService
     {
-        private DispatcherTimer _timer;
+        private Timer? _timer;
         private DateTime _targetEndTime;
         private int _remainingSeconds;
         private bool _isRunning;
+        private readonly DispatcherQueue _dispatcherQueue;
 
         public event EventHandler<int>? Tick;
         public event EventHandler? TimerCompleted;
 
         public TimerService()
         {
-            _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            _timer.Tick += OnTimerTick;
+            _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         }
 
         public void Start(int seconds)
@@ -25,19 +25,24 @@ namespace UnoPomodoro.Services
             _remainingSeconds = seconds;
             _targetEndTime = DateTime.Now.AddSeconds(seconds);
             _isRunning = true;
-            _timer.Start();
+            
+            StartTimer();
+            StartPlatformBackgroundService();
         }
 
         public void Pause()
         {
             _isRunning = false;
-            _timer.Stop();
+            StopTimer();
+            StopPlatformBackgroundService();
         }
 
         public void Reset(int seconds)
         {
             _isRunning = false;
-            _timer.Stop();
+            StopTimer();
+            StopPlatformBackgroundService();
+            
             _remainingSeconds = seconds;
             Tick?.Invoke(this, _remainingSeconds);
         }
@@ -57,7 +62,8 @@ namespace UnoPomodoro.Services
                 else
                 {
                     _isRunning = true;
-                    _timer.Start();
+                    StartTimer();
+                    StartPlatformBackgroundService();
                 }
             }
         }
@@ -66,20 +72,42 @@ namespace UnoPomodoro.Services
 
         public int RemainingSeconds => _remainingSeconds;
 
-        private void OnTimerTick(object? sender, object e)
+        private void StartTimer()
+        {
+            _timer?.Dispose();
+            _timer = new Timer(OnTimerTick, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+
+        private void StopTimer()
+        {
+            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+            _timer?.Dispose();
+            _timer = null;
+        }
+
+        private void OnTimerTick(object? state)
         {
             if (_isRunning)
             {
                 _remainingSeconds--;
-                Tick?.Invoke(this, _remainingSeconds);
-
-                if (_remainingSeconds <= 0)
+                
+                // Marshal to UI thread
+                _dispatcherQueue.TryEnqueue(() =>
                 {
-                    _timer.Stop();
-                    _isRunning = false;
-                    TimerCompleted?.Invoke(this, EventArgs.Empty);
-                }
+                    Tick?.Invoke(this, _remainingSeconds);
+
+                    if (_remainingSeconds <= 0)
+                    {
+                        StopTimer();
+                        _isRunning = false;
+                        StopPlatformBackgroundService();
+                        TimerCompleted?.Invoke(this, EventArgs.Empty);
+                    }
+                });
             }
         }
+
+        partial void StartPlatformBackgroundService();
+        partial void StopPlatformBackgroundService();
     }
 }
