@@ -4,6 +4,7 @@ using FluentAssertions;
 using UnoPomodoro.Services;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
+using UnoPomodoro.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -335,7 +336,7 @@ public class StatisticsServiceTests
     }
 
     [Fact]
-    public void CategorizeTask_ShouldCategorizeTasksCorrectly()
+    public async Task CategorizeTask_ShouldCategorizeTasksCorrectly()
     {
         // This tests the private CategorizeTask method indirectly through other methods
 
@@ -379,7 +380,7 @@ public class StatisticsServiceTests
     }
 
     [Fact]
-    public void CalculateCurrentStreak_ShouldCalculateCorrectStreak()
+    public async Task CalculateCurrentStreak_ShouldCalculateCorrectStreak()
     {
         // Arrange
         var sessions = new List<Session>
@@ -394,14 +395,14 @@ public class StatisticsServiceTests
             .ReturnsAsync(sessions);
 
         // Act
-        var streaks = _statisticsService.GetStreaksAsync().Result;
+        var streaks = await _statisticsService.GetStreaksAsync();
 
         // Assert
         streaks.CurrentStreak.Should().Be(3); // Current streak of 3 days
     }
 
     [Fact]
-    public void CalculateLongestStreak_ShouldCalculateLongestStreak()
+    public async Task CalculateLongestStreak_ShouldCalculateLongestStreak()
     {
         // Arrange
         var sessions = new List<Session>
@@ -417,14 +418,14 @@ public class StatisticsServiceTests
             .ReturnsAsync(sessions);
 
         // Act
-        var streaks = _statisticsService.GetStreaksAsync().Result;
+        var streaks = await _statisticsService.GetStreaksAsync();
 
         // Assert
         streaks.LongestStreak.Should().Be(3); // Longest streak of 3 days
     }
 
     [Fact]
-    public void CalculateMostProductiveTime_ShouldDetermineMostProductiveTime()
+    public async Task CalculateMostProductiveTime_ShouldDetermineMostProductiveTime()
     {
         // Arrange
         var sessions = new List<Session>
@@ -439,7 +440,7 @@ public class StatisticsServiceTests
             .ReturnsAsync(sessions);
 
         // Act
-        var streaks = _statisticsService.GetStreaksAsync().Result;
+        var streaks = await _statisticsService.GetStreaksAsync();
 
         // Assert
         streaks.MostProductiveTime.Should().Be("Morning"); // Most sessions in morning (9 AM)

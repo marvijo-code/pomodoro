@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml;
 
 namespace UnoPomodoro.Services;
 
-public class SoundService : IDisposable
+public class SoundService : ISoundService, IDisposable
 {
     private MediaPlayer? _mediaPlayer;
     private bool _isPlaying = false;

@@ -4,7 +4,7 @@ using Uno.Extensions;
 
 namespace UnoPomodoro.Services;
 
-public class NotificationService
+public class NotificationService : INotificationService
 {
     public async Task ShowNotificationAsync(string title, string content)
     {

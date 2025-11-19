@@ -164,18 +164,27 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task AddTask_WhenNoSession_ShouldNotAddTask()
+    public async Task AddTask_WhenNoSession_ShouldCreateSessionAndAddTask()
     {
         // Arrange
         _viewModel.SessionId = null;
         _viewModel.NewTask = "Test task";
+        var expectedTask = new TaskItem("Test task", "new-session") { Id = 1 };
+
+        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new Session());
+        _mockSessionRepository.Setup(x => x.GetSessionsWithStats())
+            .ReturnsAsync(new System.Collections.Generic.List<Session>());
+        _mockTaskRepository.Setup(x => x.Add("Test task", It.IsAny<string>()))
+            .ReturnsAsync(expectedTask);
 
         // Act
         await _viewModel.AddTaskCommand.ExecuteAsync(null);
 
         // Assert
-        _viewModel.Tasks.Should().BeEmpty();
-        _mockTaskRepository.Verify(x => x.Add(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _viewModel.Tasks.Should().ContainSingle();
+        _viewModel.SessionId.Should().NotBeNull();
+        _mockTaskRepository.Verify(x => x.Add("Test task", It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -253,7 +262,7 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void SkipSession_ShouldAutoAdvanceToNextMode()
+    public async Task SkipSession_ShouldAutoAdvanceToNextMode()
     {
         // Arrange
         _viewModel.Mode = "pomodoro";
@@ -266,15 +275,19 @@ public class MainViewModelTests
             .ReturnsAsync((string sessionId, string mode, DateTime startTime) => new Session(sessionId, mode, startTime));
 
         // Act
-        _viewModel.SkipSessionCommand.Execute(null);
+        await _viewModel.SkipSessionCommand.ExecuteAsync(null);
 
         // Assert
         _mockSessionRepository.Verify(x => x.EndSession("test-session", It.IsAny<DateTime>()), Times.Once);
-        _mockSessionRepository.Verify(x => x.CreateSession(It.IsAny<string>(), "shortBreak", It.IsAny<DateTime>()), Times.Once);
+        // Note: AutoAdvanceSession does NOT create a new session immediately, it just changes mode.
+        // Session is created when timer starts or task added.
+        // So we should verify ChangeMode logic (TimeLeft reset) and EndSession.
+        _viewModel.Mode.Should().Be("shortBreak");
+        _viewModel.TimeLeft.Should().Be(5 * 60);
     }
 
     [Fact]
-    public async Task StartNewSession_ShouldEndCurrentSessionAndStartNew()
+    public async Task StartNewSession_ShouldEndCurrentSessionAndReset()
     {
         // Arrange
         _viewModel.SessionId = "current-session";
@@ -283,17 +296,15 @@ public class MainViewModelTests
         _mockSessionRepository.Setup(x => x.EndSession("current-session", It.IsAny<DateTime>()))
             .ReturnsAsync(true);
 
-        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()))
-            .ReturnsAsync((string sessionId, string mode, DateTime startTime) => new Session(sessionId, mode, startTime));
-
         // Act
         await _viewModel.StartNewSessionCommand.ExecuteAsync(null);
 
         // Assert
         _mockSessionRepository.Verify(x => x.EndSession("current-session", It.IsAny<DateTime>()), Times.Once);
-        _mockSessionRepository.Verify(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()), Times.Once);
+        _mockSessionRepository.Verify(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()), Times.Never);
         _viewModel.Tasks.Should().BeEmpty();
         _viewModel.TimeLeft.Should().Be(25 * 60);
+        _viewModel.SessionId.Should().BeNull();
     }
 
     [Fact]

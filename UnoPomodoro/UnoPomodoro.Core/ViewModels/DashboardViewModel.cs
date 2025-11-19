@@ -101,10 +101,22 @@ public partial class DashboardViewModel : ObservableObject
             DailyStats.Add(stat);
         }
 
-        TotalFocusTime = TimeSpan.FromMinutes(stats.Sum(s => s.TotalMinutes));
-        CompletedSessions = stats.Sum(s => s.SessionsCompleted);
-        CompletedTasks = stats.Sum(s => s.TasksCompleted);
-        ProductivityScore = CalculateProductivityScore();
+        var selectedStat = stats.FirstOrDefault(s => s.Date.Date == SelectedDate.Date);
+
+        if (selectedStat != null)
+        {
+            TotalFocusTime = TimeSpan.FromMinutes(selectedStat.TotalMinutes);
+            CompletedSessions = selectedStat.SessionsCompleted;
+            CompletedTasks = selectedStat.TasksCompleted;
+            ProductivityScore = selectedStat.ProductivityScore;
+        }
+        else
+        {
+            TotalFocusTime = TimeSpan.Zero;
+            CompletedSessions = 0;
+            CompletedTasks = 0;
+            ProductivityScore = 0;
+        }
     }
 
     [RelayCommand]

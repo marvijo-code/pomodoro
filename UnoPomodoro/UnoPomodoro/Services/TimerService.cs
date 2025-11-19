@@ -4,7 +4,7 @@ using Microsoft.UI.Dispatching;
 
 namespace UnoPomodoro.Services
 {
-    public partial class TimerService
+    public partial class TimerService : ITimerService
     {
         private Timer? _timer;
         private DateTime _targetEndTime;

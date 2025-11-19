@@ -6,7 +6,10 @@ using AndroidX.Core.App;
 
 namespace UnoPomodoro.Platforms.Android
 {
-    [Service]
+    [Service(
+        Name = "com.marvijocode.pomodoro.TimerForegroundService",
+        Exported = false,
+        ForegroundServiceType = global::Android.Content.PM.ForegroundService.TypeSpecialUse)]
     public class TimerForegroundService : Service
     {
         private const int NotificationId = 1001;

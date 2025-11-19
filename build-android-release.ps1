@@ -175,7 +175,24 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $outDir = Join-Path (Split-Path $projectPath -Parent) "bin/$Configuration/$Framework"
-$apkPath = Join-Path $outDir "${packageId}-Signed.apk"
+# Handle split APKs (per ABI)
+$apkPattern = "${packageId}*-Signed.apk"
+$apks = Get-ChildItem -Path $outDir -Filter $apkPattern
+$apkPath = $null
+
+if ($apks.Count -gt 0) {
+    # Prefer arm64 for physical devices if multiple exist
+    $arm64Apk = $apks | Where-Object { $_.Name -like "*arm64-v8a*" } | Select-Object -First 1
+    if ($arm64Apk) {
+        $apkPath = $arm64Apk.FullName
+    } else {
+        $apkPath = $apks[0].FullName
+    }
+} else {
+    # Fallback to standard name
+    $apkPath = Join-Path $outDir "${packageId}-Signed.apk"
+}
+
 $aabPath = Join-Path $outDir "${packageId}-Signed.aab"
 
 Write-Host "Build output directory: $outDir"

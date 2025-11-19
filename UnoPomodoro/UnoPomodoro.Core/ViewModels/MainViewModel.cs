@@ -11,11 +11,11 @@ namespace UnoPomodoro.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly TimerService _timerService;
+    private readonly ITimerService _timerService;
     private readonly ISessionRepository _sessionRepository;
     private readonly ITaskRepository _taskRepository;
-    private readonly SoundService _soundService;
-    private readonly NotificationService _notificationService;
+    private readonly ISoundService _soundService;
+    private readonly INotificationService _notificationService;
     private readonly IStatisticsService _statisticsService;
 
     [ObservableProperty]
@@ -25,6 +25,7 @@ public partial class MainViewModel : ObservableObject
     private bool _isRunning;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TotalDuration))]
     private string _mode = "pomodoro";
 
     [ObservableProperty]
@@ -61,6 +62,8 @@ public partial class MainViewModel : ObservableObject
         { "longBreak", 15 * 60 }
     };
 
+    public int TotalDuration => _times.TryGetValue(Mode, out var duration) ? duration : 25 * 60;
+
     public ObservableCollection<TaskItem> Tasks { get; } = new ObservableCollection<TaskItem>();
     public ObservableCollection<Session> Sessions { get; } = new ObservableCollection<Session>();
 
@@ -70,11 +73,11 @@ public partial class MainViewModel : ObservableObject
     public IStatisticsService StatisticsService => _statisticsService;
 
     public MainViewModel(
-        TimerService timerService,
+        ITimerService timerService,
         ISessionRepository sessionRepository,
         ITaskRepository taskRepository,
-        SoundService soundService,
-        NotificationService notificationService,
+        ISoundService soundService,
+        INotificationService notificationService,
         IStatisticsService statisticsService)
     {
         _timerService = timerService;
@@ -135,8 +138,7 @@ public partial class MainViewModel : ObservableObject
         };
 
         // Start new session with new mode
-        SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
-        await _sessionRepository.CreateSession(SessionId, nextMode, DateTime.Now);
+        SessionId = null;
         Tasks.Clear();
 
         ChangeMode(nextMode);
@@ -182,10 +184,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SkipSession()
+    private async Task SkipSession()
     {
         // Skip current session and move to next
-        var timerTask = Task.Run(async () => await AutoAdvanceSession());
+        await AutoAdvanceSession();
     }
 
     [RelayCommand]
@@ -202,8 +204,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task AddTask()
     {
-        if (string.IsNullOrWhiteSpace(NewTask) || string.IsNullOrEmpty(SessionId))
+        if (string.IsNullOrWhiteSpace(NewTask))
             return;
+
+        if (string.IsNullOrEmpty(SessionId))
+        {
+            SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+            await _sessionRepository.CreateSession(SessionId, Mode, DateTime.Now);
+            await LoadSessions();
+        }
 
         var task = await _taskRepository.Add(NewTask, SessionId);
         if (task != null)
@@ -292,10 +301,9 @@ public partial class MainViewModel : ObservableObject
         }
 
         // Start new session
-        SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        SessionId = null;
         Tasks.Clear();
 
-        await _sessionRepository.CreateSession(SessionId, Mode, DateTime.Now);
         ResetTimer();
         UpdateSessionInfo();
     }

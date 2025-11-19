@@ -16,6 +16,7 @@
     <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
     <converters:ModeToTextConverter x:Key="ModeToTextConverter" />
     <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
+    <converters:IntToTimeSpanConverter x:Key="IntToTimeSpanConverter" />
 
     <!-- Animation Storyboard -->
     <Storyboard x:Key="TimerPulseAnimation">
@@ -41,7 +42,7 @@
       <NavigationViewItem Content="Settings" Tag="Settings" Icon="Setting" />
     </NavigationView.MenuItems>
     <NavigationView.Content>
-      <ScrollViewer Padding="16" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Padding="16" HorizontalScrollBarVisibility="Disabled" Margin="0,48,0,0">
       <Grid RowSpacing="24" MaxWidth="720" HorizontalAlignment="Center">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
@@ -115,8 +116,8 @@
 
             <!-- Analog Clock -->
             <customControls:AnalogClock
-                TimeLeft="{Binding TimeLeft}"
-                TotalTime="{Binding TotalDuration}"
+                TimeLeft="{Binding TimeLeft, Converter={StaticResource IntToTimeSpanConverter}}"
+                TotalTime="{Binding TotalDuration, Converter={StaticResource IntToTimeSpanConverter}}"
               ProgressBrush="{Binding Mode, Converter={StaticResource ModeToColorConverter}}"
               ClockSize="240"
                 HorizontalAlignment="Center" />
