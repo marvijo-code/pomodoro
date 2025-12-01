@@ -56,7 +56,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AndroidAsset Include="Assets\Audio\notification.wav" />
+    <Content Include="Assets\Audio\notification.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

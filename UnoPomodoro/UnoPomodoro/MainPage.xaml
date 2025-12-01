@@ -734,6 +734,65 @@
                 </ItemsControl>
               </StackPanel>
             </Border>
+
+            <!-- Settings Section -->
+            <Border Grid.Row="4" Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Settings"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <!-- Sound Settings -->
+                <StackPanel Spacing="12">
+                  <Grid>
+                    <TextBlock Text="Notification Sound"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding IsSoundEnabled, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <StackPanel Spacing="4" Visibility="{Binding IsSoundEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                      <TextBlock Text="Volume"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding SoundVolume}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding SoundVolume, Mode=TwoWay}"
+                            Minimum="0"
+                            Maximum="100" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="4" Visibility="{Binding IsSoundEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                      <TextBlock Text="Duration (seconds)"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding SoundDuration}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding SoundDuration, Mode=TwoWay}"
+                            Minimum="1"
+                            Maximum="30" />
+                  </StackPanel>
+
+                  <Button Content="Test Sound"
+                          Command="{Binding TestSoundCommand}"
+                          Style="{StaticResource SecondaryButtonStyle}"
+                          HorizontalAlignment="Left" 
+                          Visibility="{Binding IsSoundEnabled, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
           </Grid>
         </ScrollViewer>
       </Grid>

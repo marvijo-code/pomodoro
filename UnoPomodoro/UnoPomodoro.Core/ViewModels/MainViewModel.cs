@@ -50,6 +50,12 @@ public partial class MainViewModel : ObservableObject
     private bool _isSoundEnabled = true;
 
     [ObservableProperty]
+    private double _soundVolume = 100;
+
+    [ObservableProperty]
+    private int _soundDuration = 5;
+
+    [ObservableProperty]
     private bool _isRinging;
 
     [ObservableProperty]
@@ -164,6 +170,26 @@ public partial class MainViewModel : ObservableObject
         
         // Load dashboard stats
         _ = LoadDashboardStatsAsync();
+
+        // Initialize sound settings
+        _soundService.Volume = SoundVolume / 100.0;
+        _soundService.Duration = SoundDuration;
+    }
+
+    partial void OnSoundVolumeChanged(double value)
+    {
+        if (_soundService != null)
+        {
+            _soundService.Volume = value / 100.0;
+        }
+    }
+
+    partial void OnSoundDurationChanged(int value)
+    {
+        if (_soundService != null)
+        {
+            _soundService.Duration = value;
+        }
     }
 
     private async Task LoadDashboardStatsAsync()
