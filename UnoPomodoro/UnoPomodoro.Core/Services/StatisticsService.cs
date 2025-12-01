@@ -16,6 +16,10 @@ public class StatisticsService : IStatisticsService
     private readonly ISessionRepository _sessionRepository;
     private readonly ITaskRepository _taskRepository;
 
+    private int _dailyGoal = 120;
+    private int _weeklyGoal = 840;
+    private int _monthlyGoal = 3600;
+
     public StatisticsService(
         ISessionRepository sessionRepository,
         ITaskRepository taskRepository)
@@ -148,12 +152,11 @@ public class StatisticsService : IStatisticsService
 
     public async Task<GoalsInfo> GetGoalsAsync()
     {
-        // For now, return default goals. In a real app, these would be stored in the database
         return new GoalsInfo
         {
-            DailyGoal = 120, // 2 hours
-            WeeklyGoal = 840, // 14 hours
-            MonthlyGoal = 3600 // 60 hours
+            DailyGoal = _dailyGoal,
+            WeeklyGoal = _weeklyGoal,
+            MonthlyGoal = _monthlyGoal
         };
     }
 
@@ -228,8 +231,9 @@ public class StatisticsService : IStatisticsService
 
     public async Task UpdateGoalsAsync(int daily, int weekly, int monthly)
     {
-        // In a real implementation, this would save to the database
-        // For now, we'll just acknowledge the update
+        _dailyGoal = daily;
+        _weeklyGoal = weekly;
+        _monthlyGoal = monthly;
         await Task.CompletedTask;
     }
 

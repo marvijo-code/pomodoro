@@ -17,270 +17,791 @@
     <converters:ModeToTextConverter x:Key="ModeToTextConverter" />
     <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
     <converters:IntToTimeSpanConverter x:Key="IntToTimeSpanConverter" />
-
-    <!-- Animation Storyboard -->
-    <Storyboard x:Key="TimerPulseAnimation">
-      <DoubleAnimation Storyboard.TargetName="TimerDisplay"
-                       Storyboard.TargetProperty="Opacity"
-                       From="0.6" To="1.0" Duration="0:0:1"
-                       AutoReverse="True" RepeatBehavior="Forever" />
-    </Storyboard>
+    
+    <!-- Dashboard Converters -->
+    <converters:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />
+    <converters:DateToRelativeStringConverter x:Key="DateToRelativeStringConverter" />
+    <converters:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
+    <converters:DoubleToPercentConverter x:Key="DoubleToPercentConverter" />
+    <converters:DoubleToMinutesConverter x:Key="DoubleToMinutesConverter" />
+    <converters:IntToMinutesTextConverter x:Key="IntToMinutesTextConverter" />
+    <converters:IntToTasksTextConverter x:Key="IntToTasksTextConverter" />
+    <converters:IntToCompletedTextConverter x:Key="IntToCompletedTextConverter" />
   </Page.Resources>
 
   <Page.DataContext>
     <!-- ViewModel will be set programmatically in code-behind -->
   </Page.DataContext>
 
-  <NavigationView x:Name="NavView"
-                  PaneDisplayMode="LeftMinimal"
-                  IsPaneOpen="False"
-                  ItemInvoked="NavView_ItemInvoked">
-    <NavigationView.MenuItems>
-      <NavigationViewItem Content="Timer" Tag="Timer" Icon="Clock" />
-      <NavigationViewItem Content="Dashboard" Tag="Dashboard" Icon="ViewAll" />
-      <NavigationViewItem Content="History" Tag="History" Icon="Library" />
-      <NavigationViewItem Content="Settings" Tag="Settings" Icon="Setting" />
-    </NavigationView.MenuItems>
-    <NavigationView.Content>
-      <ScrollViewer Padding="16" HorizontalScrollBarVisibility="Disabled" Margin="0,48,0,0">
-      <Grid RowSpacing="24" MaxWidth="720" HorizontalAlignment="Center">
+  <!-- Single Page Layout - No Scrolling -->
+  <Grid Padding="12" RowSpacing="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />  <!-- Mode buttons -->
+      <RowDefinition Height="*" />     <!-- Timer (flexible) -->
+      <RowDefinition Height="Auto" />  <!-- Controls -->
+      <RowDefinition Height="Auto" />  <!-- Stats row -->
+      <RowDefinition Height="Auto" />  <!-- Quick actions -->
+    </Grid.RowDefinitions>
+
+    <!-- Mode Selection - Compact -->
+    <Grid Grid.Row="0" ColumnSpacing="6" HorizontalAlignment="Center">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <Button Grid.Column="0"
+              Command="{Binding ChangeModeCommand}"
+              CommandParameter="pomodoro"
+              Content="🍅 Focus"
+              IsEnabled="{Binding CanChangeMode}"
+              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}"
+              Padding="12,8"
+              CornerRadius="8" />
+
+      <Button Grid.Column="1"
+              Command="{Binding ChangeModeCommand}"
+              CommandParameter="shortBreak"
+              Content="☕ Short"
+              IsEnabled="{Binding CanChangeMode}"
+              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}"
+              Padding="12,8"
+              CornerRadius="8" />
+
+      <Button Grid.Column="2"
+              Command="{Binding ChangeModeCommand}"
+              CommandParameter="longBreak"
+              Content="🌴 Long"
+              IsEnabled="{Binding CanChangeMode}"
+              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}"
+              Padding="12,8"
+              CornerRadius="8" />
+    </Grid>
+
+    <!-- Timer Display - Central Focus -->
+    <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- Analog Clock with Timer Overlay -->
+      <Grid Grid.Row="0" HorizontalAlignment="Center">
+        <customControls:AnalogClock
+            TimeLeft="{Binding TimeLeft, Converter={StaticResource IntToTimeSpanConverter}}"
+            TotalTime="{Binding TotalDuration, Converter={StaticResource IntToTimeSpanConverter}}"
+            ProgressBrush="{Binding Mode, Converter={StaticResource ModeToColorConverter}}"
+            ClockSize="300"
+            HorizontalAlignment="Center" />
+        
+        <!-- Digital Timer Overlay -->
+        <TextBlock x:Name="TimerDisplay"
+                   Text="{Binding TimeLeft, Converter={StaticResource TimeToStringConverter}}"
+                   FontSize="72"
+                   FontWeight="Light"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource OnSurfaceColor}" />
+      </Grid>
+
+      <!-- Session Info -->
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="{Binding Mode, Converter={StaticResource ModeToTextConverter}}"
+                   FontSize="14"
+                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+        <TextBlock Text="•"
+                   FontSize="14"
+                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+        <TextBlock Text="{Binding SessionInfo}"
+                   FontSize="14"
+                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+      </StackPanel>
+
+      <!-- Stop Alarm (only when ringing) -->
+      <Button Grid.Row="2"
+              Content="🔔 Stop Alarm"
+              Command="{Binding StopAlarmCommand}"
+              Style="{StaticResource PrimaryButtonStyle}"
+              HorizontalAlignment="Center"
+              Visibility="{Binding IsRinging, Converter={StaticResource BoolToVisibilityConverter}}"
+              Margin="0,8,0,0"
+              Padding="16,10" />
+    </Grid>
+
+    <!-- Timer Controls - Centered -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+      <Button Content="{Binding IsRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=⏸ Pause/▶ Start}"
+              Command="{Binding ToggleTimerCommand}"
+              Style="{StaticResource PrimaryButtonStyle}"
+              MinWidth="100"
+              Height="44"
+              Padding="14,10" />
+      <Button Content="↺ Reset"
+              Command="{Binding ResetTimerCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              MinWidth="80"
+              Height="44"
+              Padding="12,10" />
+      <Button Content="⏭ Skip"
+              Command="{Binding SkipSessionCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              MinWidth="70"
+              Height="44"
+              Padding="12,10" />
+      <Button Content="+1m"
+              Command="{Binding AddOneMinuteCommand}"
+              IsEnabled="{Binding CanAddMinute}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              MinWidth="60"
+              Height="44"
+              Padding="12,10" />
+    </StackPanel>
+
+    <!-- Dashboard Stats Row -->
+    <Grid Grid.Row="3" ColumnSpacing="8" HorizontalAlignment="Center" MaxWidth="400">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Today's Sessions -->
+      <Border Grid.Column="0" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TodaySessions}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource PrimaryColor}" />
+          <TextBlock Text="Sessions"
+                     FontSize="10"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Today's Focus Time -->
+      <Border Grid.Column="1" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TodayFocusMinutes}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource SecondaryColor}" />
+          <TextBlock Text="Minutes"
+                     FontSize="10"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Tasks Completed -->
+      <Border Grid.Column="2" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TodayTasksCompleted}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource TertiaryColor}" />
+          <TextBlock Text="Tasks"
+                     FontSize="10"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Current Streak -->
+      <Border Grid.Column="3" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="{Binding CurrentStreak}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource PomodoroColor}" />
+          <TextBlock Text="Streak"
+                     FontSize="10"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Quick Actions Row -->
+    <Grid Grid.Row="4" ColumnSpacing="8" HorizontalAlignment="Center">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Sound Toggle -->
+      <Button Grid.Column="0"
+              Content="{Binding IsSoundEnabled, Converter={StaticResource BoolToStringConverter}, ConverterParameter=🔇/🔊}"
+              Command="{Binding ToggleSoundCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Width="44"
+              Height="44"
+              Padding="0"
+              CornerRadius="22" />
+
+      <!-- New Session -->
+      <Button Grid.Column="1"
+              Content="🔄 New"
+              Command="{Binding StartNewSessionCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Height="44"
+              Padding="12,10"
+              CornerRadius="10" />
+
+      <!-- Tasks Toggle -->
+      <Button Grid.Column="2"
+              Content="📋 Tasks"
+              Command="{Binding ToggleTasksCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Height="44"
+              Padding="12,10"
+              CornerRadius="10" />
+
+      <!-- Dashboard Toggle -->
+      <Button Grid.Column="3"
+              Content="📊 Stats"
+              Command="{Binding ToggleDashboardCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Height="44"
+              Padding="12,10"
+              CornerRadius="10" />
+    </Grid>
+
+    <!-- Tasks Panel (Overlay when visible) -->
+    <Border Grid.Row="1" 
+            Grid.RowSpan="3"
+            Background="{StaticResource BackgroundColor}"
+            CornerRadius="16"
+            Padding="16"
+            Margin="8"
+            Visibility="{Binding ShowTasks, Converter={StaticResource BoolToVisibilityConverter}}">
+      <Grid RowSpacing="12">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Mode Selection -->
-        <Grid Grid.Row="0" ColumnSpacing="8">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-
-          <!-- Pomodoro Mode -->
-          <Border Grid.Column="0"
-                  Style="{StaticResource CardStyle}"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}"
-                  Padding="8">
-            <Button Command="{Binding ChangeModeCommand}"
-                    CommandParameter="pomodoro"
-                    Content="Pomodoro"
-                    HorizontalAlignment="Stretch"
-                    Margin="0"
-                    Padding="8,12" />
-          </Border>
-
-          <!-- Short Break Mode -->
-          <Border Grid.Column="1"
-                  Style="{StaticResource CardStyle}"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}"
-                  Padding="8">
-            <Button Command="{Binding ChangeModeCommand}"
-                    CommandParameter="shortBreak"
-                    HorizontalAlignment="Stretch"
-                    Margin="0"
-                    Padding="8,12">
-              <TextBlock Text="Short Break Mode"
-                 TextAlignment="Center"
-                 TextWrapping="Wrap" />
-            </Button>
-          </Border>
-
-          <!-- Long Break Mode -->
-          <Border Grid.Column="2"
-                  Style="{StaticResource CardStyle}"
-                  Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}"
-                  Padding="8">
-            <Button Command="{Binding ChangeModeCommand}"
-                    CommandParameter="longBreak"
-                    HorizontalAlignment="Stretch"
-                    Margin="0"
-                    Padding="8,12">
-              <TextBlock Text="Long Break Mode"
-                 TextAlignment="Center"
-                 TextWrapping="Wrap" />
-            </Button>
-          </Border>
+        <!-- Header -->
+        <Grid Grid.Row="0">
+          <TextBlock Text="Session Tasks"
+                     FontSize="18"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}"
+                     VerticalAlignment="Center" />
+          <Button Content="✕"
+                  Command="{Binding ToggleTasksCommand}"
+                  HorizontalAlignment="Right"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Width="32"
+                  Height="32"
+                  Padding="0"
+                  CornerRadius="16" />
         </Grid>
 
-        <!-- Timer Display -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}">
-          <StackPanel Spacing="24" HorizontalAlignment="Center">
-            <!-- Digital Timer -->
-            <TextBlock x:Name="TimerDisplay"
-                       Text="{Binding TimeLeft, Converter={StaticResource TimeToStringConverter}}"
-                       Style="{StaticResource TimerDisplayStyle}" />
+        <!-- Add Task -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
 
-            <!-- Analog Clock -->
-            <customControls:AnalogClock
-                TimeLeft="{Binding TimeLeft, Converter={StaticResource IntToTimeSpanConverter}}"
-                TotalTime="{Binding TotalDuration, Converter={StaticResource IntToTimeSpanConverter}}"
-              ProgressBrush="{Binding Mode, Converter={StaticResource ModeToColorConverter}}"
-              ClockSize="240"
-                HorizontalAlignment="Center" />
+          <TextBox Grid.Column="0"
+                   Text="{Binding NewTask, Mode=TwoWay}"
+                   PlaceholderText="Add task..."
+                   CornerRadius="8"
+                   Padding="12,8" />
 
-            <!-- Session Info -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-              <TextBlock Text="{Binding Mode, Converter={StaticResource ModeToTextConverter}}"
-                         FontSize="16"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="•"
-                         FontSize="16"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding SessionInfo}"
-                         FontSize="16"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-            </StackPanel>
-          </StackPanel>
-        </Border>
-
-        <!-- Timer Controls -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-          <Button Content="{Binding IsRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=⏸ Pause/▶ Start}"
-                  Command="{Binding ToggleTimerCommand}"
+          <Button Grid.Column="1"
+                  Content="Add"
+                  Command="{Binding AddTaskCommand}"
                   Style="{StaticResource PrimaryButtonStyle}"
-                  MinWidth="110"
-                  Height="48"
-                  Padding="16,12" />
-          <Button Content="↺ Reset"
-                  Command="{Binding ResetTimerCommand}"
-                  Style="{StaticResource SecondaryButtonStyle}"
-                  MinWidth="100"
-                  Height="48"
-                  Padding="16,12" />
-          <Button Content="⏭ Skip"
-                  Command="{Binding SkipSessionCommand}"
-                  Style="{StaticResource SecondaryButtonStyle}"
-                  MinWidth="90"
-                  Height="48"
-                  Padding="16,12" />
-        </StackPanel>
-
-        <!-- Quick Actions -->
-        <Grid Grid.Row="3" ColumnSpacing="12">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-
-          <!-- Sound Control -->
-          <Border Grid.Column="0" Style="{StaticResource CardStyle}">
-            <StackPanel Spacing="8" HorizontalAlignment="Center">
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <Button Content="{Binding IsSoundEnabled, Converter={StaticResource BoolToStringConverter}, ConverterParameter=🔇/🔊}"
-                        Command="{Binding ToggleSoundCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        Width="50"
-                        Height="40"
-                        Padding="8" />
-                <Button Command="{Binding TestSoundCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        Height="40"
-                        Padding="12,8">
-                  <TextBlock Text="Test&#x0a;Sound" TextAlignment="Center" FontSize="11" />
-                </Button>
-              </StackPanel>
-              <Button Content="Stop Alarm"
-                      Command="{Binding StopAlarmCommand}"
-                      Style="{StaticResource PrimaryButtonStyle}"
-                      HorizontalAlignment="Stretch"
-                      Visibility="{Binding IsRinging, Converter={StaticResource BoolToVisibilityConverter}}"
-                      Padding="12,8" />
-            </StackPanel>
-          </Border>
-
-          <!-- Session Control -->
-          <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-            <StackPanel Spacing="8" HorizontalAlignment="Center">
-              <Button Command="{Binding StartNewSessionCommand}"
-                      Style="{StaticResource PrimaryButtonStyle}"
-                      HorizontalAlignment="Stretch"
-                      Padding="12,8">
-                <TextBlock Text="New&#x0a;Session" TextAlignment="Center" />
-              </Button>
-              <Button Command="{Binding ToggleTasksCommand}"
-                      Style="{StaticResource SecondaryButtonStyle}"
-                      HorizontalAlignment="Stretch"
-                      Padding="12,8">
-                <TextBlock Text="View&#x0a;Tasks" TextAlignment="Center" />
-              </Button>
-            </StackPanel>
-          </Border>
+                  MinWidth="60"
+                  Padding="12,8" />
         </Grid>
 
-        <!-- Current Tasks -->
-        <Border Grid.Row="4" Style="{StaticResource CardStyle}" Visibility="{Binding ShowTasks, Converter={StaticResource BoolToVisibilityConverter}}">
-          <StackPanel Spacing="15">
-            <TextBlock Text="Current Session Tasks"
-                       FontSize="20"
+        <!-- Task List -->
+        <ItemsControl x:Name="TaskList" Grid.Row="2" ItemsSource="{Binding Tasks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Margin="0,4"
+                      Padding="10"
+                      CornerRadius="8"
+                      Background="{StaticResource SurfaceVariantColor}">
+                <Grid ColumnSpacing="10">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <CheckBox Grid.Column="0"
+                            IsChecked="{Binding Completed, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding Text}"
+                             VerticalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
+                             Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
+
+                  <Button Grid.Column="2"
+                          Content="×"
+                          Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}"
+                          CommandParameter="{Binding Id}"
+                          Style="{StaticResource SecondaryButtonStyle}"
+                          Width="28"
+                          Height="28"
+                          Padding="0"
+                          FontSize="16" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+    </Border>
+
+    <!-- Dashboard Overlay -->
+    <Border Grid.Row="1" 
+            Grid.RowSpan="4"
+            Background="{StaticResource BackgroundColor}"
+            CornerRadius="16"
+            Padding="16"
+            Margin="8"
+            Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="10">
+      <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Text="Dashboard"
+                       FontSize="24"
                        FontWeight="Medium"
                        Foreground="{StaticResource OnSurfaceColor}" />
+            <TextBlock Text="{Binding SelectedDate, Converter={StaticResource DateTimeToStringConverter}}"
+                       FontSize="16"
+                       Foreground="{StaticResource OnSurfaceVariantColor}"
+                       VerticalAlignment="Bottom"
+                       Margin="0,0,0,4"/>
+          </StackPanel>
+          
+          <Button Content="✕"
+                  Command="{Binding ToggleDashboardCommand}"
+                  HorizontalAlignment="Right"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Width="32"
+                  Height="32"
+                  Padding="0"
+                  CornerRadius="16" />
+        </Grid>
 
-            <!-- Add Task -->
-            <Grid ColumnSpacing="10">
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1">
+          <Grid Padding="0,0,12,0" RowSpacing="20">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Quick Stats -->
+            <Grid Grid.Row="0" ColumnSpacing="12" RowSpacing="12">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
 
-              <TextBox Grid.Column="0"
-                       Text="{Binding NewTask, Mode=TwoWay}"
-                       PlaceholderText="Add a new task..."
-                       Style="{StaticResource PrimaryButtonStyle}" />
+              <!-- Total Focus Time -->
+              <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Focus Time"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding TotalFocusTime, Converter={StaticResource TimeSpanToStringConverter}}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{StaticResource PrimaryColor}" />
+                  <TextBlock Text="today"
+                             FontSize="10"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
 
-              <Button Grid.Column="1"
-                      Content="Add"
-                      Command="{Binding AddTaskCommand}"
-                      Style="{StaticResource PrimaryButtonStyle}"
-                      MinWidth="60" />
+              <!-- Completed Sessions -->
+              <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Sessions"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding CompletedSessions}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{StaticResource SecondaryColor}" />
+                  <TextBlock Text="completed"
+                             FontSize="10"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Completed Tasks -->
+              <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Tasks"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding CompletedTasks}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{StaticResource TertiaryColor}" />
+                  <TextBlock Text="completed"
+                             FontSize="10"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Productivity Score -->
+              <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Productivity"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding ProductivityScore, Converter={StaticResource DoubleToPercentConverter}}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{Binding ProductivityScore, Converter={StaticResource ProgressToColorConverter}}" />
+                  <ProgressBar Value="{Binding ProductivityScore}"
+                               Maximum="100"
+                               Height="4"
+                               Background="{StaticResource SurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Current Streak -->
+              <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Current Streak"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding CurrentStreak}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{StaticResource PrimaryColor}" />
+                  <TextBlock Text="days"
+                             FontSize="10"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Weekly Average -->
+              <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Weekly Avg"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <TextBlock Text="{Binding WeeklyAverage, Converter={StaticResource DoubleToMinutesConverter}}"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Foreground="{StaticResource SecondaryColor}" />
+                  <TextBlock Text="per session"
+                             FontSize="10"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Monthly Goal Progress -->
+              <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Monthly Goal Progress"
+                             FontSize="12"
+                             Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar Grid.Column="0"
+                                 Value="{Binding TotalFocusTime.TotalMinutes}"
+                                 Maximum="{Binding MonthlyGoal}"
+                                 Height="8"
+                                 Background="{StaticResource SurfaceVariantColor}" />
+                    <TextBlock Grid.Column="1"
+                               FontSize="10"
+                               Foreground="{StaticResource OnSurfaceVariantColor}">
+                      <Run Text="{Binding TotalFocusTime.TotalMinutes, Converter={StaticResource DoubleToMinutesConverter}}" />
+                      <Run Text="/" />
+                      <Run Text="{Binding MonthlyGoal, Converter={StaticResource DoubleToMinutesConverter}}" />
+                    </TextBlock>
+                  </Grid>
+                </StackPanel>
+              </Border>
             </Grid>
 
-            <!-- Task List -->
-            <ItemsControl x:Name="TaskList" ItemsSource="{Binding Tasks}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <Border Margin="0,5,0,5"
-                          Padding="10"
-                          CornerRadius="8"
-                          Background="{StaticResource SurfaceVariantColor}">
-                    <Grid ColumnSpacing="10">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                      </Grid.ColumnDefinitions>
+            <!-- Goals Section -->
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Goals"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
 
-                      <CheckBox Grid.Column="0"
-                                IsChecked="{Binding Completed, Mode=TwoWay}" />
+                <Grid ColumnSpacing="15">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
 
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Text}"
-                                 VerticalAlignment="Center"
-                                 TextWrapping="Wrap"
-                                 Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
-                                 Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
+                  <!-- Daily Goal -->
+                  <StackPanel Grid.Column="0" Spacing="5">
+                    <TextBlock Text="Daily Goal"
+                               FontSize="12"
+                               Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    <TextBlock Text="{Binding DailyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
+                               FontSize="16"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                  </StackPanel>
 
-                      <Button Grid.Column="2"
-                              Content="×"
-                              Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}"
-                              CommandParameter="{Binding Id}"
-                              Style="{StaticResource SecondaryButtonStyle}"
-                              Width="32"
-                              Height="32"
-                              Padding="0"
-                              FontSize="20" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
+                  <!-- Weekly Goal -->
+                  <StackPanel Grid.Column="1" Spacing="5">
+                    <TextBlock Text="Weekly Goal"
+                               FontSize="12"
+                               Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    <TextBlock Text="{Binding WeeklyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
+                               FontSize="16"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                  </StackPanel>
+
+                  <!-- Monthly Goal -->
+                  <StackPanel Grid.Column="2" Spacing="5">
+                    <TextBlock Text="Monthly Goal"
+                               FontSize="12"
+                               Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    <TextBlock Text="{Binding MonthlyGoal, Converter={StaticResource IntToMinutesTextConverter}}"
+                               FontSize="16"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                  </StackPanel>
+                </Grid>
+
+                <Button Content="Edit Goals"
+                        Command="{Binding ToggleEditGoalsCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" />
+              </StackPanel>
+            </Border>
+
+            <!-- Achievements Section -->
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Achievements"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <ItemsControl ItemsSource="{Binding Achievements}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Margin="0,5,0,5"
+                              Padding="10"
+                              CornerRadius="8"
+                              Background="{StaticResource SurfaceVariantColor}">
+                        <Grid ColumnSpacing="10">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+
+                          <TextBlock Grid.Column="0"
+                                     Text="{Binding Icon}"
+                                     FontSize="24" />
+
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{Binding Title}"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource OnSurfaceColor}" />
+                            <TextBlock Text="{Binding Description}"
+                                       FontSize="10"
+                                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+                          </StackPanel>
+
+                          <StackPanel Grid.Column="2" Spacing="2">
+                            <ProgressBar Value="{Binding Progress}"
+                                         Maximum="{Binding MaxProgress}"
+                                         Width="60"
+                                         Height="4"
+                                         Background="{StaticResource OutlineColor}" />
+                            <TextBlock FontSize="10"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource OnSurfaceVariantColor}">
+                              <Run Text="{Binding Progress}" />
+                              <Run Text="/" />
+                              <Run Text="{Binding MaxProgress}" />
+                            </TextBlock>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <!-- Recent Sessions -->
+            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Recent Sessions"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <ItemsControl ItemsSource="{Binding RecentSessions}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Margin="0,5,0,5"
+                              Padding="10"
+                              CornerRadius="8"
+                              Background="{StaticResource SurfaceVariantColor}">
+                        <Grid ColumnSpacing="10">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+
+                          <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="{Binding Mode}"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource OnSurfaceColor}" />
+                            <TextBlock Text="{Binding StartTime, Converter={StaticResource DateToRelativeStringConverter}}"
+                                       FontSize="10"
+                                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+                          </StackPanel>
+
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding TotalTasks, Converter={StaticResource IntToTasksTextConverter}}"
+                                     FontSize="10"
+                                     VerticalAlignment="Center"
+                                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding CompletedTasks, Converter={StaticResource IntToCompletedTextConverter}}"
+                                     FontSize="10"
+                                     VerticalAlignment="Center"
+                                     Foreground="{StaticResource SecondaryColor}" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </ScrollViewer>
       </Grid>
-    </ScrollViewer>
-    </NavigationView.Content>
-  </NavigationView>
+    </Border>
+
+    <!-- Edit Goals Overlay -->
+    <Border Grid.Row="0" 
+            Grid.RowSpan="3"
+            Background="#AA000000"
+            Visibility="{Binding ShowEditGoals, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="20">
+      <Border Background="{StaticResource SurfaceColor}"
+              CornerRadius="16"
+              Padding="24"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="300">
+        <StackPanel Spacing="16">
+          <TextBlock Text="Edit Goals"
+                     FontSize="20"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}"
+                     HorizontalAlignment="Center" />
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="Daily Goal (minutes)"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBox Text="{Binding DailyGoal, Mode=TwoWay}"
+                     InputScope="Number" />
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="Weekly Goal (minutes)"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBox Text="{Binding WeeklyGoal, Mode=TwoWay}"
+                     InputScope="Number" />
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="Monthly Goal (minutes)"
+                       FontSize="12"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <TextBox Text="{Binding MonthlyGoal, Mode=TwoWay}"
+                     InputScope="Number" />
+          </StackPanel>
+
+          <Grid ColumnSpacing="12" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0"
+                    Content="Cancel"
+                    Command="{Binding ToggleEditGoalsCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    HorizontalAlignment="Stretch" />
+            
+            <Button Grid.Column="1"
+                    Content="Save"
+                    Command="{Binding UpdateGoalsCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    HorizontalAlignment="Stretch" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
 </Page>

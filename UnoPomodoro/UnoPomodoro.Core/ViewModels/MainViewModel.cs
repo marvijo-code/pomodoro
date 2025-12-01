@@ -1,6 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
 using UnoPomodoro.Services;
@@ -22,7 +25,10 @@ public partial class MainViewModel : ObservableObject
     private int _timeLeft;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanChangeMode))]
     private bool _isRunning;
+
+    public bool CanChangeMode => !IsRunning;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TotalDuration))]
@@ -54,6 +60,67 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _sessionInfo = "Ready to start";
+
+    // Dashboard stats (inline)
+    [ObservableProperty]
+    private int _todaySessions;
+
+    [ObservableProperty]
+    private int _todayFocusMinutes;
+
+    [ObservableProperty]
+    private int _todayTasksCompleted;
+
+    [ObservableProperty]
+    private int _currentStreak;
+
+    // Dashboard Properties
+    [ObservableProperty]
+    private bool _showDashboard = false;
+
+    [ObservableProperty]
+    private bool _showEditGoals = false;
+
+    [ObservableProperty]
+    private DateTime _selectedDate = DateTime.Today;
+
+    [ObservableProperty]
+    private TimeSpan _totalFocusTime;
+
+    [ObservableProperty]
+    private int _completedSessions;
+
+    [ObservableProperty]
+    private int _completedTasks;
+
+    [ObservableProperty]
+    private double _productivityScore;
+
+    [ObservableProperty]
+    private int _dailyGoal;
+
+    [ObservableProperty]
+    private int _weeklyGoal;
+
+    [ObservableProperty]
+    private int _monthlyGoal;
+
+    [ObservableProperty]
+    private int _longestStreak;
+
+    [ObservableProperty]
+    private string _mostProductiveTime = "Morning";
+
+    [ObservableProperty]
+    private double _weeklyAverage;
+
+    [ObservableProperty]
+    private double _monthlyAverage;
+
+    public ObservableCollection<DailyStats> DailyStats { get; } = new();
+    public ObservableCollection<Session> RecentSessions { get; } = new();
+    public ObservableCollection<Achievement> Achievements { get; } = new();
+    public ObservableCollection<CategoryStats> CategoryStats { get; } = new();
 
     private readonly Dictionary<string, int> _times = new Dictionary<string, int>
     {
@@ -94,6 +161,42 @@ public partial class MainViewModel : ObservableObject
         SessionId = null;
         UpdateProgressPercentage();
         UpdateSessionInfo();
+        
+        // Load dashboard stats
+        _ = LoadDashboardStatsAsync();
+    }
+
+    private async Task LoadDashboardStatsAsync()
+    {
+        try
+        {
+            var dailyStats = await _statisticsService.GetDailyStatsAsync();
+            var todayStats = dailyStats.FirstOrDefault(s => s.Date.Date == DateTime.Today);
+            
+            if (todayStats != null)
+            {
+                TodaySessions = todayStats.SessionsCompleted;
+                TodayFocusMinutes = todayStats.TotalMinutes;
+                TodayTasksCompleted = todayStats.TasksCompleted;
+            }
+            else
+            {
+                TodaySessions = 0;
+                TodayFocusMinutes = 0;
+                TodayTasksCompleted = 0;
+            }
+
+            var streaks = await _statisticsService.GetStreaksAsync();
+            CurrentStreak = streaks.CurrentStreak;
+        }
+        catch
+        {
+            // If stats fail to load, just use defaults
+            TodaySessions = 0;
+            TodayFocusMinutes = 0;
+            TodayTasksCompleted = 0;
+            CurrentStreak = 0;
+        }
     }
 
     private void OnTimerTick(object? sender, int remainingSeconds)
@@ -101,6 +204,7 @@ public partial class MainViewModel : ObservableObject
         TimeLeft = remainingSeconds;
         UpdateProgressPercentage();
         UpdateSessionInfo();
+        OnPropertyChanged(nameof(CanAddMinute));
     }
 
     private async void OnTimerCompleted(object? sender, EventArgs e)
@@ -114,6 +218,9 @@ public partial class MainViewModel : ObservableObject
 
         // Auto-advance to next session type
         await AutoAdvanceSession();
+
+        // Refresh dashboard stats
+        await LoadDashboardStatsAsync();
 
         await _notificationService.ShowNotificationAsync("Pomodoro Completed", "Your timer has finished!");
     }
@@ -191,6 +298,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ChangeMode(string newMode)
     {
+        if (IsRunning) return;
+
         Mode = newMode;
         TimeLeft = _times[Mode];
         IsRunning = false;
@@ -198,6 +307,21 @@ public partial class MainViewModel : ObservableObject
         UpdateProgressPercentage();
         UpdateSessionInfo();
     }
+
+    [RelayCommand]
+    private void AddOneMinute()
+    {
+        TimeLeft += 60;
+        _timerService.Reset(TimeLeft);
+        if (IsRunning)
+        {
+            _timerService.Start(TimeLeft);
+        }
+        UpdateProgressPercentage();
+        UpdateSessionInfo();
+    }
+
+    public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
 
     [RelayCommand]
     private async Task AddTask()
@@ -304,6 +428,9 @@ public partial class MainViewModel : ObservableObject
 
         ResetTimer();
         UpdateSessionInfo();
+        
+        // Refresh dashboard stats
+        await LoadDashboardStatsAsync();
     }
 
     [RelayCommand]
@@ -350,5 +477,143 @@ public partial class MainViewModel : ObservableObject
         var mins = seconds / 60;
         var secs = seconds % 60;
         return $"{mins:D2}:{secs:D2}";
+    }
+
+    [RelayCommand]
+    private async Task ToggleDashboard()
+    {
+        ShowDashboard = !ShowDashboard;
+        if (ShowDashboard)
+        {
+            await LoadDashboardData();
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        await LoadDailyStats();
+        await LoadRecentSessions();
+        await LoadAchievements();
+        await LoadCategoryStats();
+        await LoadGoals();
+        await LoadStreaks();
+        await LoadAverages();
+    }
+
+    [RelayCommand]
+    private async Task LoadDailyStats()
+    {
+        var stats = await _statisticsService.GetDailyStatsAsync();
+        DailyStats.Clear();
+        foreach (var stat in stats)
+        {
+            DailyStats.Add(stat);
+        }
+
+        var selectedStat = stats.FirstOrDefault(s => s.Date.Date == SelectedDate.Date);
+
+        if (selectedStat != null)
+        {
+            TotalFocusTime = TimeSpan.FromMinutes(selectedStat.TotalMinutes);
+            CompletedSessions = selectedStat.SessionsCompleted;
+            CompletedTasks = selectedStat.TasksCompleted;
+            ProductivityScore = selectedStat.ProductivityScore;
+        }
+        else
+        {
+            TotalFocusTime = TimeSpan.Zero;
+            CompletedSessions = 0;
+            CompletedTasks = 0;
+            ProductivityScore = 0;
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadRecentSessions()
+    {
+        var sessions = await _sessionRepository.GetRecentSessionsAsync(10);
+        RecentSessions.Clear();
+        foreach (var session in sessions)
+        {
+            RecentSessions.Add(session);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadAchievements()
+    {
+        var achievements = await _statisticsService.GetAchievementsAsync();
+        Achievements.Clear();
+        foreach (var achievement in achievements)
+        {
+            Achievements.Add(achievement);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadCategoryStats()
+    {
+        var stats = await _statisticsService.GetCategoryStatsAsync();
+        CategoryStats.Clear();
+        foreach (var stat in stats)
+        {
+            CategoryStats.Add(stat);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadGoals()
+    {
+        var goals = await _statisticsService.GetGoalsAsync();
+        DailyGoal = goals.DailyGoal;
+        WeeklyGoal = goals.WeeklyGoal;
+        MonthlyGoal = goals.MonthlyGoal;
+    }
+
+    [RelayCommand]
+    private async Task LoadStreaks()
+    {
+        var streaks = await _statisticsService.GetStreaksAsync();
+        CurrentStreak = streaks.CurrentStreak;
+        LongestStreak = streaks.LongestStreak;
+        MostProductiveTime = streaks.MostProductiveTime;
+    }
+
+    [RelayCommand]
+    private async Task LoadAverages()
+    {
+        var averages = await _statisticsService.GetAveragesAsync();
+        WeeklyAverage = averages.WeeklyAverage;
+        MonthlyAverage = averages.MonthlyAverage;
+    }
+
+    [RelayCommand]
+    private async Task ExportReport(string format)
+    {
+        if (Enum.TryParse<ReportFormat>(format, true, out var reportFormat))
+        {
+            await _statisticsService.ExportReportAsync(reportFormat);
+        }
+    }
+
+    [RelayCommand]
+    private async Task UpdateGoals()
+    {
+        await _statisticsService.UpdateGoalsAsync(DailyGoal, WeeklyGoal, MonthlyGoal);
+        ShowEditGoals = false;
+        await LoadGoals(); // Refresh to ensure UI is in sync
+    }
+
+    [RelayCommand]
+    private void ToggleEditGoals()
+    {
+        ShowEditGoals = !ShowEditGoals;
+    }
+
+    [RelayCommand]
+    private void ChangeDate(int daysOffset)
+    {
+        SelectedDate = SelectedDate.AddDays(daysOffset);
+        _ = LoadDashboardData();
     }
 }
