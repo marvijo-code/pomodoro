@@ -2,9 +2,7 @@ using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Graphics;
-using Android.OS;
 using Android.Views;
-using Android.Widget;
 using AndroidX.Core.View;
 
 namespace UnoPomodoro.Droid;
@@ -23,6 +21,35 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
         base.OnCreate(savedInstanceState);
 
         EnableImmersiveFullscreen();
+        
+        // Request battery optimization exemption for reliable timer operation
+        RequestBatteryOptimizationExemption();
+    }
+    
+    protected override void OnResume()
+    {
+        base.OnResume();
+        
+        // Sync timer with wall clock when app resumes
+        // This handles cases where power saving mode may have delayed timer ticks
+        TimerResyncHelper.SyncTimer();
+    }
+    
+    private void RequestBatteryOptimizationExemption()
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+        {
+            var powerManager = GetSystemService(PowerService) as PowerManager;
+            var packageName = PackageName;
+            
+            if (powerManager != null && !string.IsNullOrEmpty(packageName) && 
+                !powerManager.IsIgnoringBatteryOptimizations(packageName))
+            {
+                // Note: This just checks, we don't auto-prompt as it can be intrusive
+                // The foreground service + wake lock should handle most cases
+                System.Diagnostics.Debug.WriteLine("Battery optimization is active. Timer may be affected in extreme power saving modes.");
+            }
+        }
     }
 
     private void EnableImmersiveFullscreen()

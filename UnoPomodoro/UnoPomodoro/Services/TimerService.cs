@@ -14,6 +14,8 @@ namespace UnoPomodoro.Services
 
         public event EventHandler<int>? Tick;
         public event EventHandler? TimerCompleted;
+        
+        public DateTime TargetEndTime => _targetEndTime;
 
         public TimerService()
         {
@@ -23,7 +25,7 @@ namespace UnoPomodoro.Services
         public void Start(int seconds)
         {
             _remainingSeconds = seconds;
-            _targetEndTime = DateTime.Now.AddSeconds(seconds);
+            _targetEndTime = DateTime.UtcNow.AddSeconds(seconds);
             _isRunning = true;
             
             StartTimer();
@@ -52,7 +54,7 @@ namespace UnoPomodoro.Services
             if (!_isRunning)
             {
                 // Recompute remaining seconds from wall clock to avoid drift
-                var remaining = _targetEndTime.Subtract(DateTime.Now);
+                var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
                 _remainingSeconds = (int)remaining.TotalSeconds;
                 if (_remainingSeconds <= 0)
                 {
@@ -64,6 +66,42 @@ namespace UnoPomodoro.Services
                     _isRunning = true;
                     StartTimer();
                     StartPlatformBackgroundService();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Syncs the timer with the wall clock. Call this when app resumes or wakes from power saving.
+        /// </summary>
+        public void SyncWithWallClock()
+        {
+            if (_isRunning)
+            {
+                var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
+                var newRemainingSeconds = Math.Max(0, (int)remaining.TotalSeconds);
+                
+                if (newRemainingSeconds <= 0)
+                {
+                    _remainingSeconds = 0;
+                    StopTimer();
+                    _isRunning = false;
+                    StopPlatformBackgroundService();
+                    
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        Tick?.Invoke(this, 0);
+                        TimerCompleted?.Invoke(this, EventArgs.Empty);
+                    });
+                }
+                else if (Math.Abs(newRemainingSeconds - _remainingSeconds) > 1)
+                {
+                    // Only update if there's significant drift (more than 1 second)
+                    _remainingSeconds = newRemainingSeconds;
+                    
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        Tick?.Invoke(this, _remainingSeconds);
+                    });
                 }
             }
         }
@@ -89,7 +127,12 @@ namespace UnoPomodoro.Services
         {
             if (_isRunning)
             {
-                _remainingSeconds--;
+                // Always calculate remaining time from wall clock to handle power saving mode
+                var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
+                _remainingSeconds = Math.Max(0, (int)remaining.TotalSeconds);
+                
+                // Update foreground service notification
+                UpdatePlatformNotification(_remainingSeconds);
                 
                 // Marshal to UI thread
                 _dispatcherQueue.TryEnqueue(() =>
@@ -109,5 +152,6 @@ namespace UnoPomodoro.Services
 
         partial void StartPlatformBackgroundService();
         partial void StopPlatformBackgroundService();
+        partial void UpdatePlatformNotification(int remainingSeconds);
     }
 }

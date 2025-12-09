@@ -88,6 +88,9 @@ public partial class MainViewModel : ObservableObject
     private bool _showEditGoals = false;
 
     [ObservableProperty]
+    private bool _showSettings = false;
+
+    [ObservableProperty]
     private DateTime _selectedDate = DateTime.Today;
 
     [ObservableProperty]
@@ -634,6 +637,12 @@ public partial class MainViewModel : ObservableObject
     private void ToggleEditGoals()
     {
         ShowEditGoals = !ShowEditGoals;
+    }
+
+    [RelayCommand]
+    private void ToggleSettings()
+    {
+        ShowSettings = !ShowSettings;
     }
 
     [RelayCommand]

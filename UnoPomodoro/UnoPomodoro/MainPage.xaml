@@ -248,6 +248,7 @@
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
       <!-- Sound Toggle -->
@@ -286,6 +287,16 @@
               Height="44"
               Padding="12,10"
               CornerRadius="10" />
+
+      <!-- Settings Toggle -->
+      <Button Grid.Column="4"
+              Content="⚙️"
+              Command="{Binding ToggleSettingsCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Width="44"
+              Height="44"
+              Padding="0"
+              CornerRadius="22" />
     </Grid>
 
     <!-- Tasks Panel (Overlay when visible) -->
@@ -327,7 +338,8 @@
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
 
-          <TextBox Grid.Column="0"
+          <TextBox x:Name="NewTaskTextBox"
+                   Grid.Column="0"
                    Text="{Binding NewTask, Mode=TwoWay}"
                    PlaceholderText="Add task..."
                    CornerRadius="8"
@@ -426,7 +438,6 @@
         <ScrollViewer Grid.Row="1">
           <Grid Padding="0,0,12,0" RowSpacing="20">
             <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
@@ -734,16 +745,56 @@
                 </ItemsControl>
               </StackPanel>
             </Border>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+    </Border>
 
-            <!-- Settings Section -->
-            <Border Grid.Row="4" Style="{StaticResource CardStyle}">
+    <!-- Settings Overlay -->
+    <Border Grid.Row="1" 
+            Grid.RowSpan="4"
+            Background="{StaticResource BackgroundColor}"
+            CornerRadius="16"
+            Padding="16"
+            Margin="8"
+            Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="10">
+      <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0">
+          <TextBlock Text="Settings"
+                     FontSize="24"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}"
+                     VerticalAlignment="Center" />
+          
+          <Button Content="✕"
+                  Command="{Binding ToggleSettingsCommand}"
+                  HorizontalAlignment="Right"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Width="32"
+                  Height="32"
+                  Padding="0"
+                  CornerRadius="16" />
+        </Grid>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Spacing="20" Padding="0,0,12,0">
+            
+            <!-- Sound Settings -->
+            <Border Style="{StaticResource CardStyle}">
               <StackPanel Spacing="15">
-                <TextBlock Text="Settings"
+                <TextBlock Text="Sound Settings"
                            FontSize="18"
                            FontWeight="Medium"
                            Foreground="{StaticResource OnSurfaceColor}" />
 
-                <!-- Sound Settings -->
                 <StackPanel Spacing="12">
                   <Grid>
                     <TextBlock Text="Notification Sound"
@@ -793,7 +844,8 @@
                 </StackPanel>
               </StackPanel>
             </Border>
-          </Grid>
+
+          </StackPanel>
         </ScrollViewer>
       </Grid>
     </Border>
