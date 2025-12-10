@@ -329,6 +329,11 @@ public partial class MainViewModel : ObservableObject
     {
         if (IsRunning) return;
 
+        // Close any open popups
+        ShowDashboard = false;
+        ShowSettings = false;
+        ShowTasks = false;
+
         Mode = newMode;
         TimeLeft = _times[Mode];
         IsRunning = false;

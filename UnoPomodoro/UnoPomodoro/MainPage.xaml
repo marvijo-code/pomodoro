@@ -44,7 +44,7 @@
     </Grid.RowDefinitions>
 
     <!-- Mode Selection - Compact -->
-    <Grid Grid.Row="0" ColumnSpacing="6" HorizontalAlignment="Center">
+    <Grid Grid.Row="0" ColumnSpacing="6" HorizontalAlignment="Center" Canvas.ZIndex="15">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
@@ -248,7 +248,6 @@
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
       <!-- Sound Toggle -->
@@ -261,17 +260,8 @@
               Padding="0"
               CornerRadius="22" />
 
-      <!-- New Session -->
-      <Button Grid.Column="1"
-              Content="🔄 New"
-              Command="{Binding StartNewSessionCommand}"
-              Style="{StaticResource SecondaryButtonStyle}"
-              Height="44"
-              Padding="12,10"
-              CornerRadius="10" />
-
       <!-- Tasks Toggle -->
-      <Button Grid.Column="2"
+      <Button Grid.Column="1"
               Content="📋 Tasks"
               Command="{Binding ToggleTasksCommand}"
               Style="{StaticResource SecondaryButtonStyle}"
@@ -280,7 +270,7 @@
               CornerRadius="10" />
 
       <!-- Dashboard Toggle -->
-      <Button Grid.Column="3"
+      <Button Grid.Column="2"
               Content="📊 Stats"
               Command="{Binding ToggleDashboardCommand}"
               Style="{StaticResource SecondaryButtonStyle}"
@@ -289,7 +279,7 @@
               CornerRadius="10" />
 
       <!-- Settings Toggle -->
-      <Button Grid.Column="4"
+      <Button Grid.Column="3"
               Content="⚙️"
               Command="{Binding ToggleSettingsCommand}"
               Style="{StaticResource SecondaryButtonStyle}"
@@ -396,12 +386,12 @@
     </Border>
 
     <!-- Dashboard Overlay -->
-    <Border Grid.Row="1" 
-            Grid.RowSpan="4"
+    <Border Grid.Row="0" 
+            Grid.RowSpan="5"
             Background="{StaticResource BackgroundColor}"
             CornerRadius="16"
             Padding="16"
-            Margin="8"
+            Margin="8,50,8,8"
             Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="10">
       <Grid RowSpacing="12">
@@ -751,12 +741,12 @@
     </Border>
 
     <!-- Settings Overlay -->
-    <Border Grid.Row="1" 
-            Grid.RowSpan="4"
+    <Border Grid.Row="0" 
+            Grid.RowSpan="5"
             Background="{StaticResource BackgroundColor}"
             CornerRadius="16"
             Padding="16"
-            Margin="8"
+            Margin="8,50,8,8"
             Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="10">
       <Grid RowSpacing="12">
