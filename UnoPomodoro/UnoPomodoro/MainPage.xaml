@@ -777,6 +777,114 @@
         <ScrollViewer Grid.Row="1">
           <StackPanel Spacing="20" Padding="0,0,12,0">
             
+            <!-- Timer Duration Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Timer Durations"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <StackPanel Spacing="12">
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Focus Duration (min)"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding PomodoroDuration}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding PomodoroDuration, Mode=TwoWay}"
+                            Minimum="5"
+                            Maximum="60"
+                            StepFrequency="5" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Short Break (min)"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding ShortBreakDuration}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding ShortBreakDuration, Mode=TwoWay}"
+                            Minimum="1"
+                            Maximum="15"
+                            StepFrequency="1" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Long Break (min)"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding LongBreakDuration}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding LongBreakDuration, Mode=TwoWay}"
+                            Minimum="5"
+                            Maximum="30"
+                            StepFrequency="5" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Pomodoros before long break"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding PomodorosBeforeLongBreak}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding PomodorosBeforeLongBreak, Mode=TwoWay}"
+                            Minimum="2"
+                            Maximum="8"
+                            StepFrequency="1" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Auto-Start Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Auto-Start"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <StackPanel Spacing="12">
+                  <Grid>
+                    <TextBlock Text="Auto-start breaks"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding AutoStartBreaks, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <Grid>
+                    <TextBlock Text="Auto-start pomodoros"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding AutoStartPomodoros, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
             <!-- Sound Settings -->
             <Border Style="{StaticResource CardStyle}">
               <StackPanel Spacing="15">
@@ -832,6 +940,78 @@
                           HorizontalAlignment="Left" 
                           Visibility="{Binding IsSoundEnabled, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Vibration Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Vibration"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <Grid>
+                  <TextBlock Text="Vibrate on completion"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource OnSurfaceColor}" />
+                  <ToggleSwitch IsOn="{Binding IsVibrationEnabled, Mode=TwoWay}"
+                                HorizontalAlignment="Right"
+                                OnContent=""
+                                OffContent=""/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Notification Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Notifications"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <StackPanel Spacing="12">
+                  <Grid>
+                    <TextBlock Text="Show notifications"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding IsNotificationEnabled, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <Grid>
+                    <TextBlock Text="Daily reminder"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding DailyReminderEnabled, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Display Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Display"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <Grid>
+                  <TextBlock Text="Keep screen awake"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource OnSurfaceColor}" />
+                  <ToggleSwitch IsOn="{Binding KeepScreenAwake, Mode=TwoWay}"
+                                HorizontalAlignment="Right"
+                                OnContent=""
+                                OffContent=""/>
+                </Grid>
               </StackPanel>
             </Border>
 

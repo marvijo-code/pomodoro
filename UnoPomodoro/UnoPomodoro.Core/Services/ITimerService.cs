@@ -10,4 +10,10 @@ public interface ITimerService
     void Start(int durationSeconds);
     void Pause();
     void Reset(int durationSeconds);
+    void Resume();
+    void SyncWithWallClock();
+
+    bool IsRunning { get; }
+    int RemainingSeconds { get; }
+    DateTime TargetEndTime { get; }
 }
