@@ -4,11 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
 using UnoPomodoro.Services;
-using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace UnoPomodoro.ViewModels;
 
@@ -20,6 +19,10 @@ public partial class MainViewModel : ObservableObject
     private readonly ISoundService _soundService;
     private readonly INotificationService _notificationService;
     private readonly IStatisticsService _statisticsService;
+    private readonly IVibrationService _vibrationService;
+    private readonly ISettingsService _settingsService;
+
+    // ── Timer state ──────────────────────────────────────────────
 
     [ObservableProperty]
     private int _timeLeft;
@@ -35,16 +38,45 @@ public partial class MainViewModel : ObservableObject
     private string _mode = "pomodoro";
 
     [ObservableProperty]
-    private string _newTask = "";
+    private double _progressPercentage = 0;
+
+    [ObservableProperty]
+    private string _sessionInfo = "Ready to start";
 
     [ObservableProperty]
     private string? _sessionId;
+
+    [ObservableProperty]
+    private bool _isRinging;
+
+    // ── Task management ──────────────────────────────────────────
+
+    [ObservableProperty]
+    private string _newTask = "";
+
+    public ObservableCollection<TaskItem> Tasks { get; } = new();
+
+    // ── Session history ──────────────────────────────────────────
 
     [ObservableProperty]
     private bool _showHistory;
 
     [ObservableProperty]
     private string? _expandedSession;
+
+    public ObservableCollection<Session> Sessions { get; } = new();
+
+    // ── Session notes (in-memory) ────────────────────────────────
+
+    [ObservableProperty]
+    private string _sessionNotes = "";
+
+    // ── Pomodoro cycle tracking ──────────────────────────────────
+
+    [ObservableProperty]
+    private int _pomodoroCount;
+
+    // ── Sound settings ───────────────────────────────────────────
 
     [ObservableProperty]
     private bool _isSoundEnabled = true;
@@ -55,19 +87,70 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _soundDuration = 5;
 
+    // ── Vibration settings ───────────────────────────────────────
+
     [ObservableProperty]
-    private bool _isRinging;
+    private bool _isVibrationEnabled;
+
+    // ── Notification settings ────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isNotificationEnabled = true;
+
+    // ── Timer duration settings (minutes) ────────────────────────
+
+    [ObservableProperty]
+    private int _pomodoroDuration = 25;
+
+    [ObservableProperty]
+    private int _shortBreakDuration = 5;
+
+    [ObservableProperty]
+    private int _longBreakDuration = 15;
+
+    [ObservableProperty]
+    private int _pomodorosBeforeLongBreak = 4;
+
+    // ── Auto-start settings ──────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _autoStartBreaks;
+
+    [ObservableProperty]
+    private bool _autoStartPomodoros;
+
+    // ── Display settings ─────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _keepScreenAwake;
+
+    // ── Daily reminder settings ──────────────────────────────────
+
+    [ObservableProperty]
+    private bool _dailyReminderEnabled;
+
+    [ObservableProperty]
+    private int _dailyReminderHour = 9;
+
+    [ObservableProperty]
+    private int _dailyReminderMinute = 0;
+
+    // ── Overlay visibility ───────────────────────────────────────
 
     [ObservableProperty]
     private bool _showTasks = false;
 
     [ObservableProperty]
-    private double _progressPercentage = 0;
+    private bool _showDashboard = false;
 
     [ObservableProperty]
-    private string _sessionInfo = "Ready to start";
+    private bool _showSettings = false;
 
-    // Dashboard stats (inline)
+    [ObservableProperty]
+    private bool _showEditGoals = false;
+
+    // ── Dashboard inline stats ───────────────────────────────────
+
     [ObservableProperty]
     private int _todaySessions;
 
@@ -80,15 +163,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _currentStreak;
 
-    // Dashboard Properties
-    [ObservableProperty]
-    private bool _showDashboard = false;
-
-    [ObservableProperty]
-    private bool _showEditGoals = false;
-
-    [ObservableProperty]
-    private bool _showSettings = false;
+    // ── Dashboard detail stats ───────────────────────────────────
 
     [ObservableProperty]
     private DateTime _selectedDate = DateTime.Today;
@@ -131,7 +206,9 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<Achievement> Achievements { get; } = new();
     public ObservableCollection<CategoryStats> CategoryStats { get; } = new();
 
-    private readonly Dictionary<string, int> _times = new Dictionary<string, int>
+    // ── Computed properties ──────────────────────────────────────
+
+    private Dictionary<string, int> _times = new()
     {
         { "pomodoro", 25 * 60 },
         { "shortBreak", 5 * 60 },
@@ -140,13 +217,17 @@ public partial class MainViewModel : ObservableObject
 
     public int TotalDuration => _times.TryGetValue(Mode, out var duration) ? duration : 25 * 60;
 
-    public ObservableCollection<TaskItem> Tasks { get; } = new ObservableCollection<TaskItem>();
-    public ObservableCollection<Session> Sessions { get; } = new ObservableCollection<Session>();
+    public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
 
-    // Public access to services for navigation
+    // ── Public service access for navigation ─────────────────────
+
     public ISessionRepository SessionRepository => _sessionRepository;
     public ITaskRepository TaskRepository => _taskRepository;
     public IStatisticsService StatisticsService => _statisticsService;
+
+    // ═════════════════════════════════════════════════════════════
+    // Constructor
+    // ═════════════════════════════════════════════════════════════
 
     public MainViewModel(
         ITimerService timerService,
@@ -154,7 +235,9 @@ public partial class MainViewModel : ObservableObject
         ITaskRepository taskRepository,
         ISoundService soundService,
         INotificationService notificationService,
-        IStatisticsService statisticsService)
+        IStatisticsService statisticsService,
+        IVibrationService vibrationService,
+        ISettingsService settingsService)
     {
         _timerService = timerService;
         _sessionRepository = sessionRepository;
@@ -162,21 +245,91 @@ public partial class MainViewModel : ObservableObject
         _soundService = soundService;
         _notificationService = notificationService;
         _statisticsService = statisticsService;
+        _vibrationService = vibrationService;
+        _settingsService = settingsService;
 
         _timerService.Tick += OnTimerTick;
         _timerService.TimerCompleted += OnTimerCompleted;
+
+        // Load settings then initialize timer
+        _ = InitializeFromSettingsAsync();
+    }
+
+    private async Task InitializeFromSettingsAsync()
+    {
+        await _settingsService.LoadAsync();
+        ApplySettingsToViewModel();
+        RebuildTimeDictionary();
 
         TimeLeft = _times[Mode];
         SessionId = null;
         UpdateProgressPercentage();
         UpdateSessionInfo();
-        
-        // Load dashboard stats
-        _ = LoadDashboardStatsAsync();
 
-        // Initialize sound settings
+        // Initialize sound service from settings
         _soundService.Volume = SoundVolume / 100.0;
         _soundService.Duration = SoundDuration;
+
+        // Load dashboard stats
+        await LoadDashboardStatsAsync();
+    }
+
+    /// <summary>
+    /// Copies all persisted settings from ISettingsService into the ViewModel's
+    /// observable properties so the UI reflects stored values.
+    /// </summary>
+    private void ApplySettingsToViewModel()
+    {
+        IsSoundEnabled = _settingsService.IsSoundEnabled;
+        SoundVolume = _settingsService.SoundVolume;
+        SoundDuration = _settingsService.SoundDuration;
+        IsVibrationEnabled = _settingsService.IsVibrationEnabled;
+        PomodoroDuration = _settingsService.PomodoroDuration;
+        ShortBreakDuration = _settingsService.ShortBreakDuration;
+        LongBreakDuration = _settingsService.LongBreakDuration;
+        PomodorosBeforeLongBreak = _settingsService.PomodorosBeforeLongBreak;
+        AutoStartBreaks = _settingsService.AutoStartBreaks;
+        AutoStartPomodoros = _settingsService.AutoStartPomodoros;
+        KeepScreenAwake = _settingsService.KeepScreenAwake;
+        IsNotificationEnabled = _settingsService.IsNotificationEnabled;
+        DailyReminderEnabled = _settingsService.IsDailyReminderEnabled;
+        DailyReminderHour = _settingsService.DailyReminderHour;
+        DailyReminderMinute = _settingsService.DailyReminderMinute;
+        DailyGoal = _settingsService.DailyGoal;
+        WeeklyGoal = _settingsService.WeeklyGoal;
+        MonthlyGoal = _settingsService.MonthlyGoal;
+    }
+
+    /// <summary>
+    /// Rebuilds the _times dictionary from the current duration settings.
+    /// </summary>
+    private void RebuildTimeDictionary()
+    {
+        _times["pomodoro"] = PomodoroDuration * 60;
+        _times["shortBreak"] = ShortBreakDuration * 60;
+        _times["longBreak"] = LongBreakDuration * 60;
+        OnPropertyChanged(nameof(TotalDuration));
+    }
+
+    /// <summary>
+    /// Persists a single setting change: updates the ISettingsService property,
+    /// then saves all settings.
+    /// </summary>
+    private async Task PersistSettingAsync(Action applyToService)
+    {
+        applyToService();
+        await _settingsService.SaveAsync();
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Property-change hooks (partial methods from CommunityToolkit)
+    // ═════════════════════════════════════════════════════════════
+
+    // -- Sound --
+
+    partial void OnIsSoundEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsSoundEnabled = value);
     }
 
     partial void OnSoundVolumeChanged(double value)
@@ -185,6 +338,7 @@ public partial class MainViewModel : ObservableObject
         {
             _soundService.Volume = value / 100.0;
         }
+        _ = PersistSettingAsync(() => _settingsService.SoundVolume = value);
     }
 
     partial void OnSoundDurationChanged(int value)
@@ -193,7 +347,205 @@ public partial class MainViewModel : ObservableObject
         {
             _soundService.Duration = value;
         }
+        _ = PersistSettingAsync(() => _settingsService.SoundDuration = value);
     }
+
+    // -- Vibration --
+
+    partial void OnIsVibrationEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsVibrationEnabled = value);
+    }
+
+    // -- Notification --
+
+    partial void OnIsNotificationEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsNotificationEnabled = value);
+    }
+
+    // -- Timer durations --
+
+    partial void OnPomodoroDurationChanged(int value)
+    {
+        RebuildTimeDictionary();
+        if (!IsRunning && Mode == "pomodoro")
+        {
+            TimeLeft = _times["pomodoro"];
+            _timerService.Reset(TimeLeft);
+            UpdateProgressPercentage();
+        }
+        _ = PersistSettingAsync(() => _settingsService.PomodoroDuration = value);
+    }
+
+    partial void OnShortBreakDurationChanged(int value)
+    {
+        RebuildTimeDictionary();
+        if (!IsRunning && Mode == "shortBreak")
+        {
+            TimeLeft = _times["shortBreak"];
+            _timerService.Reset(TimeLeft);
+            UpdateProgressPercentage();
+        }
+        _ = PersistSettingAsync(() => _settingsService.ShortBreakDuration = value);
+    }
+
+    partial void OnLongBreakDurationChanged(int value)
+    {
+        RebuildTimeDictionary();
+        if (!IsRunning && Mode == "longBreak")
+        {
+            TimeLeft = _times["longBreak"];
+            _timerService.Reset(TimeLeft);
+            UpdateProgressPercentage();
+        }
+        _ = PersistSettingAsync(() => _settingsService.LongBreakDuration = value);
+    }
+
+    partial void OnPomodorosBeforeLongBreakChanged(int value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.PomodorosBeforeLongBreak = value);
+    }
+
+    // -- Auto-start --
+
+    partial void OnAutoStartBreaksChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.AutoStartBreaks = value);
+    }
+
+    partial void OnAutoStartPomodorosChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.AutoStartPomodoros = value);
+    }
+
+    // -- Display --
+
+    partial void OnKeepScreenAwakeChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.KeepScreenAwake = value);
+    }
+
+    // -- Daily reminder --
+
+    partial void OnDailyReminderEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsDailyReminderEnabled = value);
+    }
+
+    partial void OnDailyReminderHourChanged(int value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.DailyReminderHour = value);
+    }
+
+    partial void OnDailyReminderMinuteChanged(int value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.DailyReminderMinute = value);
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Timer events
+    // ═════════════════════════════════════════════════════════════
+
+    private void OnTimerTick(object? sender, int remainingSeconds)
+    {
+        TimeLeft = remainingSeconds;
+        UpdateProgressPercentage();
+        UpdateSessionInfo();
+        OnPropertyChanged(nameof(CanAddMinute));
+    }
+
+    private async void OnTimerCompleted(object? sender, EventArgs e)
+    {
+        IsRunning = false;
+
+        // Sound notification
+        if (IsSoundEnabled)
+        {
+            IsRinging = true;
+            _soundService?.PlayNotificationSound();
+        }
+
+        // Vibration notification
+        if (IsVibrationEnabled && _vibrationService.IsSupported)
+        {
+            _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, false);
+        }
+
+        // System notification
+        if (IsNotificationEnabled)
+        {
+            var title = Mode == "pomodoro" ? "Pomodoro Completed" : "Break Over";
+            var content = Mode == "pomodoro"
+                ? "Great work! Time for a break."
+                : "Break is over. Ready to focus?";
+            await _notificationService.ShowNotificationAsync(title, content);
+        }
+
+        // Track pomodoro completions for long-break logic
+        bool wasPomodoro = Mode == "pomodoro";
+        if (wasPomodoro)
+        {
+            PomodoroCount++;
+        }
+
+        // Auto-advance to next session type
+        await AutoAdvanceSession();
+
+        // Refresh dashboard stats
+        await LoadDashboardStatsAsync();
+
+        // Auto-start next session if enabled
+        bool shouldAutoStart = wasPomodoro
+            ? AutoStartBreaks   // after a pomodoro, auto-start the break
+            : AutoStartPomodoros; // after a break, auto-start the pomodoro
+
+        if (shouldAutoStart)
+        {
+            // Short delay so the user sees the transition
+            await Task.Delay(1500);
+            if (!IsRunning) // guard in case user manually started
+            {
+                ToggleTimer();
+            }
+        }
+    }
+
+    private async Task AutoAdvanceSession()
+    {
+        // End current session
+        if (!string.IsNullOrEmpty(SessionId))
+        {
+            await _sessionRepository.EndSession(SessionId, DateTime.Now);
+        }
+
+        // Determine next mode
+        string nextMode;
+        if (Mode == "pomodoro")
+        {
+            // After N pomodoros, switch to long break instead of short break
+            nextMode = (PomodoroCount % PomodorosBeforeLongBreak == 0)
+                ? "longBreak"
+                : "shortBreak";
+        }
+        else
+        {
+            // After any break, go back to pomodoro
+            nextMode = "pomodoro";
+        }
+
+        // Start new session with new mode
+        SessionId = null;
+        Tasks.Clear();
+        SessionNotes = "";
+
+        ChangeMode(nextMode);
+        UpdateSessionInfo();
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Dashboard stats (inline on main page)
+    // ═════════════════════════════════════════════════════════════
 
     private async Task LoadDashboardStatsAsync()
     {
@@ -201,7 +553,7 @@ public partial class MainViewModel : ObservableObject
         {
             var dailyStats = await _statisticsService.GetDailyStatsAsync();
             var todayStats = dailyStats.FirstOrDefault(s => s.Date.Date == DateTime.Today);
-            
+
             if (todayStats != null)
             {
                 TodaySessions = todayStats.SessionsCompleted;
@@ -228,74 +580,34 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void OnTimerTick(object? sender, int remainingSeconds)
-    {
-        TimeLeft = remainingSeconds;
-        UpdateProgressPercentage();
-        UpdateSessionInfo();
-        OnPropertyChanged(nameof(CanAddMinute));
-    }
-
-    private async void OnTimerCompleted(object? sender, EventArgs e)
-    {
-        IsRunning = false;
-        if (IsSoundEnabled)
-        {
-            IsRinging = true;
-            _soundService?.PlayNotificationSound();
-        }
-
-        // Auto-advance to next session type
-        await AutoAdvanceSession();
-
-        // Refresh dashboard stats
-        await LoadDashboardStatsAsync();
-
-        await _notificationService.ShowNotificationAsync("Pomodoro Completed", "Your timer has finished!");
-    }
-
-    private async Task AutoAdvanceSession()
-    {
-        // End current session
-        if (!string.IsNullOrEmpty(SessionId))
-        {
-            await _sessionRepository.EndSession(SessionId, DateTime.Now);
-        }
-
-        // Determine next mode
-        string nextMode = Mode switch
-        {
-            "pomodoro" => "shortBreak",
-            "shortBreak" => "pomodoro",
-            "longBreak" => "pomodoro",
-            _ => "pomodoro"
-        };
-
-        // Start new session with new mode
-        SessionId = null;
-        Tasks.Clear();
-
-        ChangeMode(nextMode);
-        UpdateSessionInfo();
-    }
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Timer
+    // ═════════════════════════════════════════════════════════════
 
     [RelayCommand]
     private void ToggleTimer()
     {
         if (!IsRunning)
         {
-            // Start a new session if not already running
             if (string.IsNullOrEmpty(SessionId))
             {
+                // Brand-new session
                 SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
                 Tasks.Clear();
+                SessionNotes = "";
 
-                // Create session in database
                 _ = _sessionRepository.CreateSession(SessionId, Mode, DateTime.Now);
                 _ = LoadSessions();
+
+                _timerService.Start(TimeLeft);
+            }
+            else
+            {
+                // BUG FIX: Resuming a paused session — use Resume() instead of
+                // Start() so the wall-clock sync (TargetEndTime) is maintained.
+                _timerService.Resume();
             }
 
-            _timerService.Start(TimeLeft);
             IsRunning = true;
             UpdateSessionInfo();
         }
@@ -320,7 +632,6 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task SkipSession()
     {
-        // Skip current session and move to next
         await AutoAdvanceSession();
     }
 
@@ -329,10 +640,8 @@ public partial class MainViewModel : ObservableObject
     {
         if (IsRunning) return;
 
-        // Close any open popups
-        ShowDashboard = false;
-        ShowSettings = false;
-        ShowTasks = false;
+        // Close any open overlays
+        CloseAllOverlays();
 
         Mode = newMode;
         TimeLeft = _times[Mode];
@@ -355,7 +664,9 @@ public partial class MainViewModel : ObservableObject
         UpdateSessionInfo();
     }
 
-    public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Tasks
+    // ═════════════════════════════════════════════════════════════
 
     [RelayCommand]
     private async Task AddTask()
@@ -406,6 +717,24 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task EditTask((int taskId, string newText) args)
+    {
+        if (string.IsNullOrWhiteSpace(args.newText))
+            return;
+
+        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId);
+        if (task != null)
+        {
+            task.Text = args.newText;
+            await _taskRepository.UpdateTaskAsync(task);
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Sessions & History
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
     private async Task LoadSessions()
     {
         var sessions = await _sessionRepository.GetSessionsWithStats();
@@ -429,25 +758,6 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ToggleSound()
-    {
-        IsSoundEnabled = !IsSoundEnabled;
-    }
-
-    [RelayCommand]
-    private void StopAlarm()
-    {
-        IsRinging = false;
-        _soundService?.StopNotificationSound();
-    }
-
-    [RelayCommand]
-    private void ToggleTasks()
-    {
-        ShowTasks = !ShowTasks;
-    }
-
-    [RelayCommand]
     private async Task StartNewSession()
     {
         // End current session if running
@@ -459,12 +769,31 @@ public partial class MainViewModel : ObservableObject
         // Start new session
         SessionId = null;
         Tasks.Clear();
+        SessionNotes = "";
 
         ResetTimer();
         UpdateSessionInfo();
-        
+
         // Refresh dashboard stats
         await LoadDashboardStatsAsync();
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Sound
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private void ToggleSound()
+    {
+        IsSoundEnabled = !IsSoundEnabled;
+    }
+
+    [RelayCommand]
+    private void StopAlarm()
+    {
+        IsRinging = false;
+        _soundService?.StopNotificationSound();
+        _vibrationService?.Cancel();
     }
 
     [RelayCommand]
@@ -473,55 +802,72 @@ public partial class MainViewModel : ObservableObject
         _soundService?.PlayNotificationSound();
     }
 
-    private void UpdateProgressPercentage()
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Overlay toggles (mutual exclusion)
+    // ═════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Closes all overlay panels.
+    /// </summary>
+    private void CloseAllOverlays()
     {
-        var totalTime = _times[Mode];
-        var remaining = TimeLeft;
-        ProgressPercentage = ((double)(totalTime - remaining) / totalTime) * 100;
+        ShowTasks = false;
+        ShowDashboard = false;
+        ShowSettings = false;
     }
 
-    private void UpdateSessionInfo()
+    [RelayCommand]
+    private void ToggleTasks()
     {
-        if (string.IsNullOrEmpty(SessionId))
+        if (ShowTasks)
         {
-            SessionInfo = "Ready to start";
+            ShowTasks = false;
         }
         else
         {
-            var totalTasks = Tasks.Count;
-            var completedTasks = Tasks.Count(t => t.Completed);
-
-            if (totalTasks == 0)
-            {
-                SessionInfo = "0/0 ✅";
-            }
-            else if (IsRunning)
-            {
-                SessionInfo = $"{completedTasks}/{totalTasks} tasks completed";
-            }
-            else
-            {
-                SessionInfo = $"{completedTasks}/{totalTasks} tasks ready";
-            }
+            CloseAllOverlays();
+            ShowTasks = true;
         }
-    }
-
-    public string FormatTime(int seconds)
-    {
-        var mins = seconds / 60;
-        var secs = seconds % 60;
-        return $"{mins:D2}:{secs:D2}";
     }
 
     [RelayCommand]
     private async Task ToggleDashboard()
     {
-        ShowDashboard = !ShowDashboard;
         if (ShowDashboard)
         {
+            ShowDashboard = false;
+        }
+        else
+        {
+            CloseAllOverlays();
+            ShowDashboard = true;
             await LoadDashboardData();
         }
     }
+
+    [RelayCommand]
+    private void ToggleSettings()
+    {
+        if (ShowSettings)
+        {
+            ShowSettings = false;
+        }
+        else
+        {
+            CloseAllOverlays();
+            ShowSettings = true;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleEditGoals()
+    {
+        ShowEditGoals = !ShowEditGoals;
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Commands — Dashboard data loading
+    // ═════════════════════════════════════════════════════════════
 
     private async Task LoadDashboardData()
     {
@@ -634,20 +980,15 @@ public partial class MainViewModel : ObservableObject
     private async Task UpdateGoals()
     {
         await _statisticsService.UpdateGoalsAsync(DailyGoal, WeeklyGoal, MonthlyGoal);
+
+        // Also persist goals through settings
+        _settingsService.DailyGoal = DailyGoal;
+        _settingsService.WeeklyGoal = WeeklyGoal;
+        _settingsService.MonthlyGoal = MonthlyGoal;
+        await _settingsService.SaveAsync();
+
         ShowEditGoals = false;
         await LoadGoals(); // Refresh to ensure UI is in sync
-    }
-
-    [RelayCommand]
-    private void ToggleEditGoals()
-    {
-        ShowEditGoals = !ShowEditGoals;
-    }
-
-    [RelayCommand]
-    private void ToggleSettings()
-    {
-        ShowSettings = !ShowSettings;
     }
 
     [RelayCommand]
@@ -655,5 +996,49 @@ public partial class MainViewModel : ObservableObject
     {
         SelectedDate = SelectedDate.AddDays(daysOffset);
         _ = LoadDashboardData();
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Helpers
+    // ═════════════════════════════════════════════════════════════
+
+    private void UpdateProgressPercentage()
+    {
+        var totalTime = _times[Mode];
+        var remaining = TimeLeft;
+        ProgressPercentage = ((double)(totalTime - remaining) / totalTime) * 100;
+    }
+
+    private void UpdateSessionInfo()
+    {
+        if (string.IsNullOrEmpty(SessionId))
+        {
+            SessionInfo = "Ready to start";
+        }
+        else
+        {
+            var totalTasks = Tasks.Count;
+            var completedTasks = Tasks.Count(t => t.Completed);
+
+            if (totalTasks == 0)
+            {
+                SessionInfo = "0/0 ✅";
+            }
+            else if (IsRunning)
+            {
+                SessionInfo = $"{completedTasks}/{totalTasks} tasks completed";
+            }
+            else
+            {
+                SessionInfo = $"{completedTasks}/{totalTasks} tasks ready";
+            }
+        }
+    }
+
+    public string FormatTime(int seconds)
+    {
+        var mins = seconds / 60;
+        var secs = seconds % 60;
+        return $"{mins:D2}:{secs:D2}";
     }
 }

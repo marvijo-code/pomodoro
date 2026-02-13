@@ -9,8 +9,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore test dependencies
+      run: dotnet restore UnoPomodoro.Tests/UnoPomodoro.Tests.csproj
+      working-directory: UnoPomodoro
+
+    - name: Run tests with coverage
+      run: >
+        dotnet test UnoPomodoro.Tests/UnoPomodoro.Tests.csproj
+        --configuration Release
+        --no-restore
+        --logger "trx;LogFileName=test-results.trx"
+        --collect:"XPlat Code Coverage"
+        -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+      working-directory: UnoPomodoro
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: UnoPomodoro/UnoPomodoro.Tests/TestResults/
+        retention-days: 14
+
   build:
     runs-on: windows-latest
+    needs: test
 
     steps:
     - name: Checkout code
@@ -66,10 +101,17 @@ jobs:
           ### Features
           - Professional Material Design 3 dark theme
           - Pomodoro timer with customizable work/break intervals
+          - Configurable focus, short break, and long break durations
+          - Auto-start breaks and pomodoros
+          - Long break after N pomodoros
+          - Vibration notifications
           - Task management with SQLite persistence
-          - Notification sounds with 3x repeat
+          - Task editing and session notes
+          - Notification sounds with volume/duration control
           - Analog clock visualization
-          - Session history and statistics
+          - Session history, statistics, and achievements
+          - Keep screen awake mode
+          - Settings persistence across app restarts
 
           ### Installation
           Download the APK and install on your Android device (Android 5.0+)

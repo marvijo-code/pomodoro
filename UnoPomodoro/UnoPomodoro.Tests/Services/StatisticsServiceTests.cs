@@ -29,11 +29,14 @@ public class StatisticsServiceTests
     [Fact]
     public async Task GetDailyStatsAsync_ShouldReturnDailyStatistics()
     {
-        // Arrange
+        // Arrange — use explicit dates to avoid midnight wrap-around issues
+        var today = DateTime.Today.AddHours(10); // 10 AM today
+        var yesterday = DateTime.Today.AddDays(-1).AddHours(10); // 10 AM yesterday
+
         var sessions = new List<Session>
         {
-            new Session("session1", "pomodoro", DateTime.Today.AddHours(-2)) { EndTime = DateTime.Today.AddHours(-1), TotalTasks = 3, CompletedTasks = 2 },
-            new Session("session2", "pomodoro", DateTime.Today.AddDays(-1)) { EndTime = DateTime.Today.AddDays(-1).AddHours(1), TotalTasks = 2, CompletedTasks = 1 }
+            new Session("session1", "pomodoro", today) { EndTime = today.AddHours(1), TotalTasks = 3, CompletedTasks = 2 },
+            new Session("session2", "pomodoro", yesterday) { EndTime = yesterday.AddHours(1), TotalTasks = 2, CompletedTasks = 1 }
         };
 
         var tasks = new List<TaskItem>
@@ -110,10 +113,10 @@ public class StatisticsServiceTests
 
         var sessions = new List<Session>
         {
-            new Session("session1", "pomodoro", DateTime.Now.AddHours(-4)) { EndTime = DateTime.Now.AddHours(-3) },
-            new Session("session2", "pomodoro", DateTime.Now.AddHours(-3)) { EndTime = DateTime.Now.AddHours(-2) },
-            new Session("session3", "pomodoro", DateTime.Now.AddHours(-2)) { EndTime = DateTime.Now.AddHours(-1) },
-            new Session("session4", "pomodoro", DateTime.Now.AddHours(-1)) { EndTime = DateTime.Now }
+            new Session("session1", "pomodoro", DateTime.Now.AddHours(-4)) { EndTime = DateTime.Now.AddHours(-4).AddMinutes(25) },
+            new Session("session2", "pomodoro", DateTime.Now.AddHours(-3)) { EndTime = DateTime.Now.AddHours(-3).AddMinutes(25) },
+            new Session("session3", "pomodoro", DateTime.Now.AddHours(-2)) { EndTime = DateTime.Now.AddHours(-2).AddMinutes(25) },
+            new Session("session4", "pomodoro", DateTime.Now.AddHours(-1)) { EndTime = DateTime.Now.AddHours(-1).AddMinutes(25) }
         };
 
         _mockTaskRepository.Setup(x => x.GetAllTasksAsync())
@@ -177,11 +180,12 @@ public class StatisticsServiceTests
     public async Task GetAveragesAsync_ShouldCalculateAveragesCorrectly()
     {
         // Arrange
+        var now = DateTime.Now;
         var sessions = new List<Session>
         {
-            new Session("session1", "pomodoro", DateTime.Now.AddHours(-1)) { EndTime = DateTime.Now.AddMinutes(-35) }, // 25 minutes
-            new Session("session2", "pomodoro", DateTime.Now.AddHours(-3)) { EndTime = DateTime.Now.AddHours(-2).AddMinutes(-10) }, // 50 minutes
-            new Session("session3", "pomodoro", DateTime.Now.AddDays(-2)) { EndTime = DateTime.Now.AddDays(-2).AddMinutes(-15) } // 45 minutes
+            new Session("session1", "pomodoro", now.AddHours(-1)) { EndTime = now.AddHours(-1).AddMinutes(25) }, // 25 minutes
+            new Session("session2", "pomodoro", now.AddHours(-3)) { EndTime = now.AddHours(-3).AddMinutes(50) }, // 50 minutes
+            new Session("session3", "pomodoro", now.AddDays(-2)) { EndTime = now.AddDays(-2).AddMinutes(45) } // 45 minutes
         };
 
         _mockSessionRepository.Setup(x => x.GetAllSessionsAsync())
@@ -191,8 +195,10 @@ public class StatisticsServiceTests
         var averages = await _statisticsService.GetAveragesAsync();
 
         // Assert
-        averages.WeeklyAverage.Should().Be(25); // Only 1 session in last week (25 minutes)
-        averages.MonthlyAverage.Should().Be(40); // All 3 sessions in last month (120 minutes / 3 = 40)
+        // All 3 sessions are within the last 7 days, so weekly average = (25+50+45)/3 = 40
+        averages.WeeklyAverage.Should().Be(40);
+        // All 3 sessions are within the last 30 days, so monthly average = (25+50+45)/3 = 40
+        averages.MonthlyAverage.Should().Be(40);
     }
 
     [Fact]
@@ -259,11 +265,12 @@ public class StatisticsServiceTests
     [Fact]
     public async Task GetMonthlyStatsAsync_ShouldReturnMonthlyStatistics()
     {
-        // Arrange
+        // Arrange - use dates guaranteed to be in the same month
+        var baseDate = new DateTime(2026, 1, 20, 10, 0, 0); // Fixed date to avoid month boundary issues
         var sessions = new List<Session>
         {
-            new Session("session1", "pomodoro", DateTime.Now) { EndTime = DateTime.Now.AddMinutes(25) },
-            new Session("session2", "pomodoro", DateTime.Now.AddDays(-15)) { EndTime = DateTime.Now.AddDays(-15).AddMinutes(25) }
+            new Session("session1", "pomodoro", baseDate) { EndTime = baseDate.AddMinutes(25) },
+            new Session("session2", "pomodoro", baseDate.AddDays(-5)) { EndTime = baseDate.AddDays(-5).AddMinutes(25) }
         };
 
         var tasks = new List<TaskItem>

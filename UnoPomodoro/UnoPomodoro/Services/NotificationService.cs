@@ -1,27 +1,67 @@
 using System;
 using System.Threading.Tasks;
-using Uno.Extensions;
 
 namespace UnoPomodoro.Services;
 
 public class NotificationService : INotificationService
 {
-    public async Task ShowNotificationAsync(string title, string content)
+#if __ANDROID__
+    private const string ChannelId = "pomodoro_notifications";
+    private const string ChannelName = "Pomodoro Notifications";
+    private const string ChannelDescription = "Notifications for Pomodoro timer events";
+    private int _notificationId;
+
+    public NotificationService()
     {
-        // On Android, we can use the Uno implementation directly
-        // This will show a toast notification
+        CreateNotificationChannel();
+    }
+
+    private void CreateNotificationChannel()
+    {
+        if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.O)
+        {
+            var channel = new Android.App.NotificationChannel(
+                ChannelId,
+                ChannelName,
+                Android.App.NotificationImportance.High)
+            {
+                Description = ChannelDescription
+            };
+
+            var notificationManager = Android.App.NotificationManager.FromContext(
+                Android.App.Application.Context);
+            notificationManager?.CreateNotificationChannel(channel);
+        }
+    }
+
+    public Task ShowNotificationAsync(string title, string content)
+    {
         try
         {
-            // Create a simple notification - implementation will depend on Uno Platform specifics
-            System.Diagnostics.Debug.WriteLine($"Notification: {title} - {content}");
+            var context = Android.App.Application.Context;
 
-            // For now, we'll just log the notification
-            // In a real implementation, we would use Android's NotificationManager
-            await Task.Delay(100); // Simulate async work
+            var builder = new AndroidX.Core.App.NotificationCompat.Builder(context, ChannelId)
+                .SetSmallIcon(Android.Resource.Drawable.IcDialogInfo)
+                .SetContentTitle(title)
+                .SetContentText(content)
+                .SetPriority(AndroidX.Core.App.NotificationCompat.PriorityHigh)
+                .SetAutoCancel(true);
+
+            var notificationManager = AndroidX.Core.App.NotificationManagerCompat.From(context);
+            notificationManager.Notify(_notificationId++, builder.Build());
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error showing notification: {ex.Message}");
         }
+
+        return Task.CompletedTask;
     }
+#else
+    public Task ShowNotificationAsync(string title, string content)
+    {
+        System.Diagnostics.Debug.WriteLine($"Notification: {title} - {content}");
+        return Task.CompletedTask;
+    }
+#endif
 }

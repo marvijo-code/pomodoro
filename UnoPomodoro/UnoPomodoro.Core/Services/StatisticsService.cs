@@ -15,6 +15,7 @@ public class StatisticsService : IStatisticsService
 {
     private readonly ISessionRepository _sessionRepository;
     private readonly ITaskRepository _taskRepository;
+    private readonly ISettingsService? _settingsService;
 
     private int _dailyGoal = 120;
     private int _weeklyGoal = 840;
@@ -26,6 +27,16 @@ public class StatisticsService : IStatisticsService
     {
         _sessionRepository = sessionRepository;
         _taskRepository = taskRepository;
+    }
+
+    public StatisticsService(
+        ISessionRepository sessionRepository,
+        ITaskRepository taskRepository,
+        ISettingsService settingsService)
+    {
+        _sessionRepository = sessionRepository;
+        _taskRepository = taskRepository;
+        _settingsService = settingsService;
     }
 
     public async Task<List<DailyStats>> GetDailyStatsAsync()
@@ -40,8 +51,8 @@ public class StatisticsService : IStatisticsService
                 Date = g.Key,
                 TotalMinutes = g.Sum(s => (int)((s.EndTime - s.StartTime)?.TotalMinutes ?? 0)),
                 SessionsCompleted = g.Count(s => s.EndTime.HasValue),
-                TasksCompleted = tasks.Count(t => t.Completed && t.SessionId == g.First().Id),
-                ProductivityScore = CalculateDailyProductivityScore(g.ToList(), tasks.Where(t => t.SessionId == g.First().Id).ToList())
+                TasksCompleted = tasks.Count(t => t.Completed && g.Any(s => s.Id == t.SessionId)),
+                ProductivityScore = CalculateDailyProductivityScore(g.ToList(), tasks.Where(t => g.Any(s => s.Id == t.SessionId)).ToList())
             })
             .OrderByDescending(s => s.Date)
             .Take(30)
@@ -152,6 +163,17 @@ public class StatisticsService : IStatisticsService
 
     public async Task<GoalsInfo> GetGoalsAsync()
     {
+        if (_settingsService != null)
+        {
+            await _settingsService.LoadAsync();
+            return new GoalsInfo
+            {
+                DailyGoal = _settingsService.DailyGoal,
+                WeeklyGoal = _settingsService.WeeklyGoal,
+                MonthlyGoal = _settingsService.MonthlyGoal
+            };
+        }
+
         return new GoalsInfo
         {
             DailyGoal = _dailyGoal,
@@ -211,20 +233,22 @@ public class StatisticsService : IStatisticsService
         };
 
         var fileName = $"pomodoro_report_{DateTime.Now:yyyyMMdd_HHmmss}";
+        var outputDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var filePath = Path.Combine(outputDir, fileName);
 
         switch (format)
         {
             case ReportFormat.Json:
                 var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync($"{fileName}.json", json);
+                await File.WriteAllTextAsync($"{filePath}.json", json);
                 break;
             case ReportFormat.Csv:
-                await ExportToCsv(report, fileName);
+                await ExportToCsv(report, filePath);
                 break;
             case ReportFormat.Pdf:
                 // PDF export would require a PDF library
                 // For now, we'll create a detailed text report
-                await ExportToTextReport(report, fileName);
+                await ExportToTextReport(report, filePath);
                 break;
         }
     }
@@ -234,7 +258,14 @@ public class StatisticsService : IStatisticsService
         _dailyGoal = daily;
         _weeklyGoal = weekly;
         _monthlyGoal = monthly;
-        await Task.CompletedTask;
+
+        if (_settingsService != null)
+        {
+            _settingsService.DailyGoal = daily;
+            _settingsService.WeeklyGoal = weekly;
+            _settingsService.MonthlyGoal = monthly;
+            await _settingsService.SaveAsync();
+        }
     }
 
     public async Task<List<WeeklyStats>> GetWeeklyStatsAsync()
@@ -350,9 +381,15 @@ public class StatisticsService : IStatisticsService
         var streak = 0;
         var currentDate = DateTime.Today;
 
+        // Allow starting from yesterday if no session today
+        if (uniqueDays.Count > 0 && uniqueDays[0] < currentDate)
+        {
+            currentDate = currentDate.AddDays(-1);
+        }
+
         foreach (var day in uniqueDays)
         {
-            if (day == currentDate || day == currentDate.AddDays(-1))
+            if (day == currentDate)
             {
                 streak++;
                 currentDate = day.AddDays(-1);

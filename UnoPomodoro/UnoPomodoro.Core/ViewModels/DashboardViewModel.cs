@@ -179,9 +179,9 @@ public partial class DashboardViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ExportReport()
+    private async Task ExportReport(ReportFormat format)
     {
-        await _statisticsService.ExportReportAsync(ReportFormat.Pdf);
+        await _statisticsService.ExportReportAsync(format);
     }
 
     [RelayCommand]

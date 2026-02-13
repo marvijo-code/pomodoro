@@ -95,8 +95,8 @@ namespace UnoPomodoro.Data.Repositories
         {
             try
             {
-                _connection.Update(task);
-                return Task.FromResult(true);
+                var rowsAffected = _connection.Update(task);
+                return Task.FromResult(rowsAffected > 0);
             }
             catch
             {

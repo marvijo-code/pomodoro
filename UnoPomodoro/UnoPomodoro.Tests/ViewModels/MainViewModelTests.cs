@@ -19,6 +19,8 @@ public class MainViewModelTests
     private readonly Mock<ISoundService> _mockSoundService;
     private readonly Mock<INotificationService> _mockNotificationService;
     private readonly Mock<IStatisticsService> _mockStatisticsService;
+    private readonly Mock<IVibrationService> _mockVibrationService;
+    private readonly Mock<ISettingsService> _mockSettingsService;
     private readonly MainViewModel _viewModel;
 
     public MainViewModelTests()
@@ -29,6 +31,24 @@ public class MainViewModelTests
         _mockSoundService = new Mock<ISoundService>();
         _mockNotificationService = new Mock<INotificationService>();
         _mockStatisticsService = new Mock<IStatisticsService>();
+        _mockVibrationService = new Mock<IVibrationService>();
+        _mockSettingsService = new Mock<ISettingsService>();
+
+        // Setup default settings values
+        _mockSettingsService.SetupAllProperties();
+        _mockSettingsService.Object.IsSoundEnabled = true;
+        _mockSettingsService.Object.SoundVolume = 100;
+        _mockSettingsService.Object.SoundDuration = 5;
+        _mockSettingsService.Object.PomodoroDuration = 25;
+        _mockSettingsService.Object.ShortBreakDuration = 5;
+        _mockSettingsService.Object.LongBreakDuration = 15;
+        _mockSettingsService.Object.PomodorosBeforeLongBreak = 4;
+        _mockSettingsService.Object.IsNotificationEnabled = true;
+        _mockSettingsService.Object.DailyGoal = 120;
+        _mockSettingsService.Object.WeeklyGoal = 840;
+        _mockSettingsService.Object.MonthlyGoal = 3600;
+        _mockSettingsService.Setup(x => x.LoadAsync()).Returns(Task.CompletedTask);
+        _mockSettingsService.Setup(x => x.SaveAsync()).Returns(Task.CompletedTask);
 
         _viewModel = new MainViewModel(
             _mockTimerService.Object,
@@ -36,7 +56,9 @@ public class MainViewModelTests
             _mockTaskRepository.Object,
             _mockSoundService.Object,
             _mockNotificationService.Object,
-            _mockStatisticsService.Object);
+            _mockStatisticsService.Object,
+            _mockVibrationService.Object,
+            _mockSettingsService.Object);
     }
 
     [Fact]
@@ -97,6 +119,22 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void ToggleTimer_WhenResuming_ShouldCallResumeInsteadOfStart()
+    {
+        // Arrange - simulate a paused session (SessionId exists, not running)
+        _viewModel.SessionId = "existing-session";
+        _viewModel.IsRunning = false;
+
+        // Act
+        _viewModel.ToggleTimerCommand.Execute(null);
+
+        // Assert - should call Resume() not Start()
+        _viewModel.IsRunning.Should().BeTrue();
+        _mockTimerService.Verify(x => x.Resume(), Times.Once);
+        _mockTimerService.Verify(x => x.Start(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
     public void ResetTimer_ShouldResetTimerToDefaultTime()
     {
         // Arrange
@@ -125,6 +163,19 @@ public class MainViewModelTests
         _viewModel.IsRunning.Should().BeFalse();
         _viewModel.ProgressPercentage.Should().Be(0);
         _mockTimerService.Verify(x => x.Reset(5 * 60), Times.Once);
+    }
+
+    [Fact]
+    public void ChangeMode_WhenRunning_ShouldNotChangeMode()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+
+        // Act
+        _viewModel.ChangeModeCommand.Execute("shortBreak");
+
+        // Assert - mode should stay as pomodoro
+        _viewModel.Mode.Should().Be("pomodoro");
     }
 
     [Fact]
@@ -267,21 +318,16 @@ public class MainViewModelTests
         // Arrange
         _viewModel.Mode = "pomodoro";
         _viewModel.SessionId = "test-session";
+        _viewModel.PomodoroCount = 1; // 1 % 4 != 0 → shortBreak
 
         _mockSessionRepository.Setup(x => x.EndSession("test-session", It.IsAny<DateTime>()))
             .ReturnsAsync(true);
-
-        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), "shortBreak", It.IsAny<DateTime>()))
-            .ReturnsAsync((string sessionId, string mode, DateTime startTime) => new Session(sessionId, mode, startTime));
 
         // Act
         await _viewModel.SkipSessionCommand.ExecuteAsync(null);
 
         // Assert
         _mockSessionRepository.Verify(x => x.EndSession("test-session", It.IsAny<DateTime>()), Times.Once);
-        // Note: AutoAdvanceSession does NOT create a new session immediately, it just changes mode.
-        // Session is created when timer starts or task added.
-        // So we should verify ChangeMode logic (TimeLeft reset) and EndSession.
         _viewModel.Mode.Should().Be("shortBreak");
         _viewModel.TimeLeft.Should().Be(5 * 60);
     }
@@ -318,7 +364,7 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void StopAlarm_ShouldStopAlarmSound()
+    public void StopAlarm_ShouldStopAlarmSoundAndVibration()
     {
         // Arrange
         _viewModel.IsRinging = true;
@@ -329,6 +375,7 @@ public class MainViewModelTests
         // Assert
         _viewModel.IsRinging.Should().BeFalse();
         _mockSoundService.Verify(x => x.StopNotificationSound(), Times.Once);
+        _mockVibrationService.Verify(x => x.Cancel(), Times.Once);
     }
 
     [Fact]
@@ -359,7 +406,50 @@ public class MainViewModelTests
         _viewModel.IsRunning.Should().BeFalse();
         _viewModel.IsRinging.Should().BeTrue();
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockNotificationService.Verify(x => x.ShowNotificationAsync("Pomodoro Completed", "Your timer has finished!"), Times.Once);
+        _mockNotificationService.Verify(x => x.ShowNotificationAsync("Pomodoro Completed", "Great work! Time for a break."), Times.Once);
+    }
+
+    [Fact]
+    public void TimerCompleted_WithVibrationEnabled_ShouldVibrate()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsVibrationEnabled = true;
+        _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), false), Times.Once);
+    }
+
+    [Fact]
+    public void TimerCompleted_WithVibrationDisabled_ShouldNotVibrate()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsVibrationEnabled = false;
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public void TimerCompleted_WithNotificationsDisabled_ShouldNotShowNotification()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsNotificationEnabled = false;
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _mockNotificationService.Verify(x => x.ShowNotificationAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -401,5 +491,243 @@ public class MainViewModelTests
 
         // Assert
         _viewModel.SessionInfo.Should().Be("1/2 tasks completed");
+    }
+
+    // ── Overlay mutual exclusion tests ───────────────────────────
+
+    [Fact]
+    public void ToggleTasks_ShouldCloseOtherOverlays()
+    {
+        // Arrange - dashboard is open
+        _viewModel.ShowDashboard = true;
+        _viewModel.ShowSettings = true;
+
+        // Act
+        _viewModel.ToggleTasksCommand.Execute(null);
+
+        // Assert
+        _viewModel.ShowTasks.Should().BeTrue();
+        _viewModel.ShowDashboard.Should().BeFalse();
+        _viewModel.ShowSettings.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleSettings_ShouldCloseOtherOverlays()
+    {
+        // Arrange - tasks panel is open
+        _viewModel.ShowTasks = true;
+        _viewModel.ShowDashboard = true;
+
+        // Act
+        _viewModel.ToggleSettingsCommand.Execute(null);
+
+        // Assert
+        _viewModel.ShowSettings.Should().BeTrue();
+        _viewModel.ShowTasks.Should().BeFalse();
+        _viewModel.ShowDashboard.Should().BeFalse();
+    }
+
+    // ── Configurable duration tests ──────────────────────────────
+
+    [Fact]
+    public void PomodoroDuration_WhenChanged_ShouldUpdateTimerIfNotRunning()
+    {
+        // Arrange
+        _viewModel.Mode = "pomodoro";
+        _viewModel.IsRunning = false;
+
+        // Act
+        _viewModel.PomodoroDuration = 30;
+
+        // Assert
+        _viewModel.TimeLeft.Should().Be(30 * 60);
+        _viewModel.TotalDuration.Should().Be(30 * 60);
+    }
+
+    [Fact]
+    public void ShortBreakDuration_WhenChanged_ShouldUpdateTimerIfInShortBreakMode()
+    {
+        // Arrange
+        _viewModel.ChangeModeCommand.Execute("shortBreak");
+        _viewModel.IsRunning = false;
+
+        // Act
+        _viewModel.ShortBreakDuration = 10;
+
+        // Assert
+        _viewModel.TimeLeft.Should().Be(10 * 60);
+    }
+
+    // ── Settings persistence tests ───────────────────────────────
+
+    [Fact]
+    public void ChangingSoundEnabled_ShouldPersistSetting()
+    {
+        // Act
+        _viewModel.IsSoundEnabled = false;
+
+        // Assert
+        _mockSettingsService.VerifySet(x => x.IsSoundEnabled = false, Times.Once);
+        _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void ChangingVibrationEnabled_ShouldPersistSetting()
+    {
+        // Act
+        _viewModel.IsVibrationEnabled = true;
+
+        // Assert
+        _mockSettingsService.VerifySet(x => x.IsVibrationEnabled = true, Times.Once);
+        _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
+    }
+
+    // ── Long break logic tests ───────────────────────────────────
+
+    [Fact]
+    public void PomodoroCount_ShouldIncrementOnPomodoroCompletion()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.Mode = "pomodoro";
+        _viewModel.PomodoroCount = 0;
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _viewModel.PomodoroCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void AfterFourPomodoros_ShouldSwitchToLongBreak()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.Mode = "pomodoro";
+        _viewModel.PomodoroCount = 3; // Will become 4 after completion
+        _viewModel.PomodorosBeforeLongBreak = 4;
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _viewModel.Mode.Should().Be("longBreak");
+        _viewModel.TimeLeft.Should().Be(15 * 60);
+    }
+
+    [Fact]
+    public void AfterThreePomodoros_ShouldSwitchToShortBreak()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.Mode = "pomodoro";
+        _viewModel.PomodoroCount = 0; // Will become 1 after completion (1 % 4 != 0)
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _viewModel.Mode.Should().Be("shortBreak");
+    }
+
+    // ── Session notes tests ──────────────────────────────────────
+
+    [Fact]
+    public void SessionNotes_ShouldBeResetOnNewSession()
+    {
+        // Arrange
+        _viewModel.SessionNotes = "Some notes";
+        _viewModel.SessionId = "test-session";
+
+        // Act
+        _viewModel.StartNewSessionCommand.Execute(null);
+
+        // Assert
+        _viewModel.SessionNotes.Should().BeEmpty();
+    }
+
+    // ── AddOneMinute tests ───────────────────────────────────────
+
+    [Fact]
+    public void AddOneMinute_ShouldAdd60Seconds()
+    {
+        // Arrange
+        _viewModel.TimeLeft = 60; // 1 minute left
+
+        // Act
+        _viewModel.AddOneMinuteCommand.Execute(null);
+
+        // Assert
+        _viewModel.TimeLeft.Should().Be(120);
+    }
+
+    [Fact]
+    public void CanAddMinute_WhenTimeLessThan3Minutes_ShouldBeTrue()
+    {
+        // Arrange
+        _viewModel.TimeLeft = 170;
+
+        // Assert
+        _viewModel.CanAddMinute.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanAddMinute_WhenTimeAtOrAbove3Minutes_ShouldBeFalse()
+    {
+        // Arrange
+        _viewModel.TimeLeft = 180;
+
+        // Assert
+        _viewModel.CanAddMinute.Should().BeFalse();
+    }
+
+    // ── EditTask tests ───────────────────────────────────────────
+
+    [Fact]
+    public async Task EditTask_WhenValidInput_ShouldUpdateTaskText()
+    {
+        // Arrange
+        var task = new TaskItem("Old text", "test-session") { Id = 1 };
+        _viewModel.Tasks.Add(task);
+        _mockTaskRepository.Setup(x => x.UpdateTaskAsync(It.IsAny<TaskItem>())).Returns(Task.FromResult(true));
+
+        // Act
+        await _viewModel.EditTaskCommand.ExecuteAsync((1, "New text"));
+
+        // Assert
+        task.Text.Should().Be("New text");
+        _mockTaskRepository.Verify(x => x.UpdateTaskAsync(It.IsAny<TaskItem>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task EditTask_WhenEmptyText_ShouldNotUpdateTask()
+    {
+        // Arrange
+        var task = new TaskItem("Old text", "test-session") { Id = 1 };
+        _viewModel.Tasks.Add(task);
+
+        // Act
+        await _viewModel.EditTaskCommand.ExecuteAsync((1, ""));
+
+        // Assert
+        task.Text.Should().Be("Old text");
+        _mockTaskRepository.Verify(x => x.UpdateTaskAsync(It.IsAny<TaskItem>()), Times.Never);
+    }
+
+    // ── CanChangeMode tests ──────────────────────────────────────
+
+    [Fact]
+    public void CanChangeMode_WhenNotRunning_ShouldBeTrue()
+    {
+        _viewModel.IsRunning = false;
+        _viewModel.CanChangeMode.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanChangeMode_WhenRunning_ShouldBeFalse()
+    {
+        _viewModel.IsRunning = true;
+        _viewModel.CanChangeMode.Should().BeFalse();
     }
 }
