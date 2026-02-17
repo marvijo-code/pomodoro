@@ -19,7 +19,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Restore test dependencies
       run: dotnet restore UnoPomodoro.Tests/UnoPomodoro.Tests.csproj
@@ -57,17 +57,13 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Install .NET workloads
-      run: |
-        dotnet workload restore
-      working-directory: UnoPomodoro
+      run: dotnet workload restore UnoPomodoro/UnoPomodoro/UnoPomodoro.csproj
 
     - name: Restore dependencies
-      run: dotnet restore
-      working-directory: UnoPomodoro
+      run: dotnet restore UnoPomodoro/UnoPomodoro.sln
 
     - name: Build Release APK
-      run: dotnet build -c Release -f net10.0-android
-      working-directory: UnoPomodoro/UnoPomodoro
+      run: dotnet build UnoPomodoro/UnoPomodoro/UnoPomodoro.csproj -c Release -f net10.0-android --no-restore
 
     - name: Find APK
       id: find_apk
