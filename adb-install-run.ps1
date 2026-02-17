@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = 'Debug',
-    [string]$Framework = 'net9.0-android',
+    [string]$Framework = 'net10.0-android',
     [string]$PackageId = 'com.marvijocode.pomodoro'
 )
 $ErrorActionPreference = 'Stop'
@@ -52,3 +52,4 @@ Write-Host ("Installing: " + $apk.FullName)
 Write-Host ("Launching package: $PackageId")
 # Use monkey to issue a single launch intent
 & $adb shell monkey -p $PackageId -c android.intent.category.LAUNCHER 1 | Out-Host
+

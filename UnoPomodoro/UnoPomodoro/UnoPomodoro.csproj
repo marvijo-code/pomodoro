@@ -1,6 +1,6 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net9.0-android</TargetFrameworks>
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
@@ -22,7 +22,7 @@
       https://aka.platform.uno/singleproject-features
     -->
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Debug|net9.0-android'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Debug|net10.0-android'">
     <!-- Completely disable Fast Deployment to avoid override directory issues -->
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
@@ -31,7 +31,7 @@
     <!-- Ensure native libraries are stored uncompressed in APK -->
     <AndroidStoreUncompressedFileExtensions>.dll;.so</AndroidStoreUncompressedFileExtensions>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net9.0-android'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net10.0-android'">
     <!-- Ship a single arm64 build to avoid bundling emulator/x86 native libs -->
     <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
     <!-- Use the assembly store/linker so we do not embed every managed assembly + pdb verbatim -->

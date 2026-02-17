@@ -24,14 +24,14 @@ if (-not (Test-Path $projectPath)) {
 }
 
 # Build the Android project
-dotnet build $projectPath -f net9.0-android
+dotnet build $projectPath -f net10.0-android
 
 # Check if build succeeded
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Build succeeded!" -ForegroundColor Green
     
     # Locate the built APK
-    $apkDir = Join-Path $PSScriptRoot 'UnoPomodoro/bin/Debug/net9.0-android'
+    $apkDir = Join-Path $PSScriptRoot 'UnoPomodoro/bin/Debug/net10.0-android'
     $apk = Get-ChildItem -Path $apkDir -Filter '*.apk' -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $apk) {
         Write-Host "Error: APK not found in $apkDir" -ForegroundColor Red
@@ -166,3 +166,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Build failed. Please check the errors above." -ForegroundColor Red
     exit 1
 }
+

@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Framework = "net9.0-android",
+    [string]$Framework = "net10.0-android",
     [string]$AndroidSdk,
     [string]$DeviceId,
     [switch]$SkipInstall,
@@ -70,3 +70,4 @@ if (-not $SkipInstall) {
 } else {
     Write-Host "SkipInstall flag set; build complete." -ForegroundColor Green
 }
+

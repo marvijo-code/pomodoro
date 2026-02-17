@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Framework = "net9.0-android",
+    [string]$Framework = "net10.0-android",
     [string]$AndroidSdk,
     [string]$DeviceId,
     [switch]$SkipInstall,
@@ -217,3 +217,4 @@ if (-not $SkipInstall) {
 }
 
 Write-Host "Done." -ForegroundColor Green
+

@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Framework = "net9.0-android",
+    [string]$Framework = "net10.0-android",
     [string]$AndroidSdk,
     [string]$DeviceId,
     [switch]$SkipLaunch
@@ -164,3 +164,4 @@ Write-Host "Using device: $device" -ForegroundColor Cyan
 Install-And-Launch -AdbPath $adbPath -DeviceId $device -ApkPath $apkPath -PackageId $packageId -SkipLaunch:$SkipLaunch
 
 Write-Host "Done." -ForegroundColor Green
+

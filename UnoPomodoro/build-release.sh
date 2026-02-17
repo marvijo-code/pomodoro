@@ -7,13 +7,13 @@ echo "Building Uno Pomodoro Android app (Release)..."
 cd "$(dirname "$0")"
 
 # Build the Android project in Release mode
-dotnet build UnoPomodoro/UnoPomodoro.csproj -c Release -f net9.0-android
+dotnet build UnoPomodoro/UnoPomodoro.csproj -c Release -f net10.0-android
 
 if [ $? -eq 0 ]; then
     echo "Build succeeded!"
     
     # Locate the built APK
-    APK_DIR="UnoPomodoro/bin/Release/net9.0-android"
+    APK_DIR="UnoPomodoro/bin/Release/net10.0-android"
     APK=$(find "$APK_DIR" -name "*-Signed.apk" -type f 2>/dev/null | head -1)
     
     if [ -n "$APK" ]; then
@@ -27,3 +27,4 @@ else
     echo "Build failed. Please check the errors above."
     exit 1
 fi
+
