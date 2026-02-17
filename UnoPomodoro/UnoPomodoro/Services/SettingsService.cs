@@ -139,7 +139,7 @@ public class SettingsService : ISettingsService
         {
 #if __ANDROID__
             var prefs = Android.App.Application.Context.GetSharedPreferences(
-                "PomodoroSettings", Android.Content.Context.ModePrivate);
+                "PomodoroSettings", Android.Content.FileCreationMode.Private);
             var editor = prefs?.Edit();
             if (editor != null)
             {
@@ -174,7 +174,7 @@ public class SettingsService : ISettingsService
         {
 #if __ANDROID__
             var prefs = Android.App.Application.Context.GetSharedPreferences(
-                "PomodoroSettings", Android.Content.Context.ModePrivate);
+                "PomodoroSettings", Android.Content.FileCreationMode.Private);
             var json = prefs?.GetString("settings_json", null);
             if (!string.IsNullOrEmpty(json))
             {

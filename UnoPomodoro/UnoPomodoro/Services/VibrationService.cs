@@ -7,14 +7,6 @@ using Android.OS;
 
 namespace UnoPomodoro.Services;
 
-public interface IVibrationService
-{
-    void Vibrate(int durationMs = 500);
-    void VibratePattern(long[] pattern, bool repeat = false);
-    void Cancel();
-    bool IsSupported { get; }
-}
-
 public class VibrationService : IVibrationService
 {
 #if __ANDROID__
