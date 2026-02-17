@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 8802,
+    watch: {
+      ignored: ['**/__tests__/**', '**/*.test.*', '**/*.spec.*'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8801',
