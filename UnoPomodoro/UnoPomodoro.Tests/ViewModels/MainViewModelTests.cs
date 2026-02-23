@@ -453,6 +453,49 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task TimerTick_WithLastMinuteAlertEnabled_ShouldSendFinalMinuteNotification()
+    {
+        // Arrange
+        _viewModel.Mode = "pomodoro";
+        _viewModel.IsRunning = true;
+        _viewModel.IsLastMinuteAlertEnabled = true;
+        _viewModel.IsNotificationEnabled = true;
+
+        // Act
+        _mockTimerService.Raise(x => x.Tick += null, EventArgs.Empty, 60);
+        await Task.Delay(50);
+
+        // Assert
+        _mockNotificationService.Verify(
+            x => x.ShowNotificationAsync("Final Minute", "One minute left. Wrap up your current task."),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task TimerCompleted_WithSessionGoal_ShouldIncludeGoalStatusInNotification()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.Mode = "pomodoro";
+        _viewModel.SessionTaskGoal = 2;
+        _viewModel.IsSoundEnabled = false;
+        _viewModel.IsNotificationEnabled = true;
+        _viewModel.Tasks.Add(new TaskItem("Task 1", "session") { Id = 1, Completed = true });
+        _viewModel.Tasks.Add(new TaskItem("Task 2", "session") { Id = 2, Completed = false });
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+        await Task.Delay(50);
+
+        // Assert
+        _mockNotificationService.Verify(
+            x => x.ShowNotificationAsync(
+                "Pomodoro Completed",
+                It.Is<string>(content => content.Contains("1 more task"))),
+            Times.Once);
+    }
+
+    [Fact]
     public void FormatTime_ShouldFormatTimeCorrectly()
     {
         // Assert
@@ -525,6 +568,51 @@ public class MainViewModelTests
         _viewModel.ShowSettings.Should().BeTrue();
         _viewModel.ShowTasks.Should().BeFalse();
         _viewModel.ShowDashboard.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleTimer_WithAutoOpenTasksOnSessionStart_ShouldShowTasksOverlay()
+    {
+        // Arrange
+        _viewModel.AutoOpenTasksOnSessionStart = true;
+        _viewModel.Mode = "pomodoro";
+
+        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()))
+            .ReturnsAsync(new Session());
+        _mockSessionRepository.Setup(x => x.GetSessionsWithStats())
+            .ReturnsAsync(new System.Collections.Generic.List<Session>());
+
+        // Act
+        _viewModel.ToggleTimerCommand.Execute(null);
+
+        // Assert
+        _viewModel.ShowTasks.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SkipSession_WithCarryIncompleteTasksEnabled_ShouldRestoreTasksOnNextPomodoro()
+    {
+        // Arrange
+        _viewModel.CarryIncompleteTasksToNextSession = true;
+        _viewModel.Mode = "pomodoro";
+        _viewModel.SessionId = "session-1";
+        _viewModel.Tasks.Add(new TaskItem("Carry me", "session-1") { Id = 1, Completed = false });
+
+        _mockSessionRepository.Setup(x => x.EndSession(It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new Session());
+        _mockTaskRepository.Setup(x => x.Add(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string text, string sessionId) => new TaskItem(text, sessionId) { Id = 10 });
+
+        // Act
+        await _viewModel.SkipSessionCommand.ExecuteAsync(null); // pomodoro -> shortBreak
+        await _viewModel.SkipSessionCommand.ExecuteAsync(null); // shortBreak -> pomodoro
+
+        // Assert
+        _viewModel.Mode.Should().Be("pomodoro");
+        _viewModel.Tasks.Should().ContainSingle();
+        _viewModel.Tasks[0].Text.Should().Be("Carry me");
     }
 
     // ── Configurable duration tests ──────────────────────────────

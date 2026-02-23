@@ -33,6 +33,14 @@ public interface ISettingsService
     int DailyReminderHour { get; set; }
     int DailyReminderMinute { get; set; }
 
+    // Productivity features
+    bool IsMidpointReminderEnabled { get; set; }
+    bool IsLastMinuteAlertEnabled { get; set; }
+    int AutoStartDelaySeconds { get; set; }
+    bool CarryIncompleteTasksToNextSession { get; set; }
+    bool AutoOpenTasksOnSessionStart { get; set; }
+    int SessionTaskGoal { get; set; }
+
     // Goals (persisted)
     int DailyGoal { get; set; }
     int WeeklyGoal { get; set; }

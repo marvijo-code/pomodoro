@@ -109,6 +109,43 @@ public class SettingsService : ISettingsService
         set => SetValue("DailyReminderMinute", value);
     }
 
+    // Productivity features
+    public bool IsMidpointReminderEnabled
+    {
+        get => GetValue<bool>("IsMidpointReminderEnabled", false);
+        set => SetValue("IsMidpointReminderEnabled", value);
+    }
+
+    public bool IsLastMinuteAlertEnabled
+    {
+        get => GetValue<bool>("IsLastMinuteAlertEnabled", true);
+        set => SetValue("IsLastMinuteAlertEnabled", value);
+    }
+
+    public int AutoStartDelaySeconds
+    {
+        get => GetValue<int>("AutoStartDelaySeconds", 2);
+        set => SetValue("AutoStartDelaySeconds", value);
+    }
+
+    public bool CarryIncompleteTasksToNextSession
+    {
+        get => GetValue<bool>("CarryIncompleteTasksToNextSession", false);
+        set => SetValue("CarryIncompleteTasksToNextSession", value);
+    }
+
+    public bool AutoOpenTasksOnSessionStart
+    {
+        get => GetValue<bool>("AutoOpenTasksOnSessionStart", false);
+        set => SetValue("AutoOpenTasksOnSessionStart", value);
+    }
+
+    public int SessionTaskGoal
+    {
+        get => GetValue<int>("SessionTaskGoal", 0);
+        set => SetValue("SessionTaskGoal", value);
+    }
+
     // Goals
     public int DailyGoal
     {

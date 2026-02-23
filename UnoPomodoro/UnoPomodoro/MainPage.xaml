@@ -107,16 +107,22 @@
       </Grid>
 
       <!-- Session Info -->
-      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
-        <TextBlock Text="{Binding Mode, Converter={StaticResource ModeToTextConverter}}"
-                   FontSize="14"
-                   Foreground="{StaticResource OnSurfaceVariantColor}" />
-        <TextBlock Text="•"
-                   FontSize="14"
-                   Foreground="{StaticResource OnSurfaceVariantColor}" />
-        <TextBlock Text="{Binding SessionInfo}"
-                   FontSize="14"
-                   Foreground="{StaticResource OnSurfaceVariantColor}" />
+      <StackPanel Grid.Row="1" HorizontalAlignment="Center" Spacing="4" Margin="0,8,0,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+          <TextBlock Text="{Binding Mode, Converter={StaticResource ModeToTextConverter}}"
+                     FontSize="14"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <TextBlock Text="•"
+                     FontSize="14"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <TextBlock Text="{Binding SessionInfo}"
+                     FontSize="14"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+        </StackPanel>
+        <TextBlock Text="{Binding SessionGoalProgressText}"
+                   FontSize="12"
+                   HorizontalAlignment="Center"
+                   Foreground="{StaticResource SecondaryColor}" />
       </StackPanel>
 
       <!-- Stop Alarm (only when ringing) -->
@@ -359,7 +365,9 @@
                   </Grid.ColumnDefinitions>
 
                   <CheckBox Grid.Column="0"
-                            IsChecked="{Binding Completed, Mode=TwoWay}" />
+                            IsChecked="{Binding Completed, Mode=OneWay}"
+                            Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}"
+                            CommandParameter="{Binding Id}" />
 
                   <TextBlock Grid.Column="1"
                              Text="{Binding Text}"
@@ -877,6 +885,90 @@
                                VerticalAlignment="Center"
                                Foreground="{StaticResource OnSurfaceColor}" />
                     <ToggleSwitch IsOn="{Binding AutoStartPomodoros, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Auto-start delay (seconds)"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding AutoStartDelaySeconds}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding AutoStartDelaySeconds, Mode=TwoWay}"
+                            Minimum="1"
+                            Maximum="10"
+                            StepFrequency="1" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Productivity Settings -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Productivity"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <StackPanel Spacing="12">
+                  <StackPanel Spacing="4">
+                    <Grid>
+                      <TextBlock Text="Session task goal"
+                                 FontSize="12"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                      <TextBlock Text="{Binding SessionTaskGoal}"
+                                 FontSize="12"
+                                 HorizontalAlignment="Right"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    </Grid>
+                    <Slider Value="{Binding SessionTaskGoal, Mode=TwoWay}"
+                            Minimum="0"
+                            Maximum="10"
+                            StepFrequency="1" />
+                  </StackPanel>
+
+                  <Grid>
+                    <TextBlock Text="Midpoint reminder"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding IsMidpointReminderEnabled, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <Grid>
+                    <TextBlock Text="Last-minute alert"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding IsLastMinuteAlertEnabled, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <Grid>
+                    <TextBlock Text="Carry incomplete tasks"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding CarryIncompleteTasksToNextSession, Mode=TwoWay}"
+                                  HorizontalAlignment="Right"
+                                  OnContent=""
+                                  OffContent=""/>
+                  </Grid>
+
+                  <Grid>
+                    <TextBlock Text="Auto-open tasks on focus start"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource OnSurfaceColor}" />
+                    <ToggleSwitch IsOn="{Binding AutoOpenTasksOnSessionStart, Mode=TwoWay}"
                                   HorizontalAlignment="Right"
                                   OnContent=""
                                   OffContent=""/>

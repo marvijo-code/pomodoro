@@ -135,6 +135,27 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _dailyReminderMinute = 0;
 
+    // ── Productivity features ────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isMidpointReminderEnabled;
+
+    [ObservableProperty]
+    private bool _isLastMinuteAlertEnabled = true;
+
+    [ObservableProperty]
+    private int _autoStartDelaySeconds = 2;
+
+    [ObservableProperty]
+    private bool _carryIncompleteTasksToNextSession;
+
+    [ObservableProperty]
+    private bool _autoOpenTasksOnSessionStart;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SessionGoalProgressText))]
+    private int _sessionTaskGoal;
+
     // ── Overlay visibility ───────────────────────────────────────
 
     [ObservableProperty]
@@ -214,10 +235,17 @@ public partial class MainViewModel : ObservableObject
         { "shortBreak", 5 * 60 },
         { "longBreak", 15 * 60 }
     };
+    private readonly List<string> _pendingCarryOverTaskTexts = new();
+    private bool _midpointReminderTriggered;
+    private bool _lastMinuteAlertTriggered;
 
     public int TotalDuration => _times.TryGetValue(Mode, out var duration) ? duration : 25 * 60;
 
     public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
+    public string SessionGoalProgressText =>
+        SessionTaskGoal <= 0
+            ? "Session goal is off"
+            : $"{Tasks.Count(t => t.Completed)}/{SessionTaskGoal} goal tasks";
 
     // ── Public service access for navigation ─────────────────────
 
@@ -295,6 +323,12 @@ public partial class MainViewModel : ObservableObject
         DailyReminderEnabled = _settingsService.IsDailyReminderEnabled;
         DailyReminderHour = _settingsService.DailyReminderHour;
         DailyReminderMinute = _settingsService.DailyReminderMinute;
+        IsMidpointReminderEnabled = _settingsService.IsMidpointReminderEnabled;
+        IsLastMinuteAlertEnabled = _settingsService.IsLastMinuteAlertEnabled;
+        AutoStartDelaySeconds = _settingsService.AutoStartDelaySeconds;
+        CarryIncompleteTasksToNextSession = _settingsService.CarryIncompleteTasksToNextSession;
+        AutoOpenTasksOnSessionStart = _settingsService.AutoOpenTasksOnSessionStart;
+        SessionTaskGoal = _settingsService.SessionTaskGoal;
         DailyGoal = _settingsService.DailyGoal;
         WeeklyGoal = _settingsService.WeeklyGoal;
         MonthlyGoal = _settingsService.MonthlyGoal;
@@ -443,6 +477,53 @@ public partial class MainViewModel : ObservableObject
         _ = PersistSettingAsync(() => _settingsService.DailyReminderMinute = value);
     }
 
+    // -- Productivity features --
+
+    partial void OnIsMidpointReminderEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsMidpointReminderEnabled = value);
+    }
+
+    partial void OnIsLastMinuteAlertEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsLastMinuteAlertEnabled = value);
+    }
+
+    partial void OnAutoStartDelaySecondsChanged(int value)
+    {
+        var sanitized = Math.Clamp(value, 1, 10);
+        if (value != sanitized)
+        {
+            AutoStartDelaySeconds = sanitized;
+            return;
+        }
+
+        _ = PersistSettingAsync(() => _settingsService.AutoStartDelaySeconds = sanitized);
+    }
+
+    partial void OnCarryIncompleteTasksToNextSessionChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.CarryIncompleteTasksToNextSession = value);
+    }
+
+    partial void OnAutoOpenTasksOnSessionStartChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.AutoOpenTasksOnSessionStart = value);
+    }
+
+    partial void OnSessionTaskGoalChanged(int value)
+    {
+        var sanitized = Math.Clamp(value, 0, 10);
+        if (value != sanitized)
+        {
+            SessionTaskGoal = sanitized;
+            return;
+        }
+
+        _ = PersistSettingAsync(() => _settingsService.SessionTaskGoal = sanitized);
+        UpdateSessionInfo();
+    }
+
     // ═════════════════════════════════════════════════════════════
     // Timer events
     // ═════════════════════════════════════════════════════════════
@@ -453,11 +534,14 @@ public partial class MainViewModel : ObservableObject
         UpdateProgressPercentage();
         UpdateSessionInfo();
         OnPropertyChanged(nameof(CanAddMinute));
+
+        _ = MaybeSendFocusRemindersAsync(remainingSeconds);
     }
 
     private async void OnTimerCompleted(object? sender, EventArgs e)
     {
         IsRunning = false;
+        bool wasPomodoro = Mode == "pomodoro";
 
         // Sound notification
         if (IsSoundEnabled)
@@ -475,15 +559,14 @@ public partial class MainViewModel : ObservableObject
         // System notification
         if (IsNotificationEnabled)
         {
-            var title = Mode == "pomodoro" ? "Pomodoro Completed" : "Break Over";
-            var content = Mode == "pomodoro"
-                ? "Great work! Time for a break."
+            var title = wasPomodoro ? "Pomodoro Completed" : "Break Over";
+            var content = wasPomodoro
+                ? BuildPomodoroCompletionMessage()
                 : "Break is over. Ready to focus?";
             await _notificationService.ShowNotificationAsync(title, content);
         }
 
         // Track pomodoro completions for long-break logic
-        bool wasPomodoro = Mode == "pomodoro";
         if (wasPomodoro)
         {
             PomodoroCount++;
@@ -503,7 +586,7 @@ public partial class MainViewModel : ObservableObject
         if (shouldAutoStart)
         {
             // Short delay so the user sees the transition
-            await Task.Delay(1500);
+            await Task.Delay(Math.Max(1, AutoStartDelaySeconds) * 1000);
             if (!IsRunning) // guard in case user manually started
             {
                 ToggleTimer();
@@ -513,6 +596,25 @@ public partial class MainViewModel : ObservableObject
 
     private async Task AutoAdvanceSession()
     {
+        if (Mode == "pomodoro")
+        {
+            if (CarryIncompleteTasksToNextSession)
+            {
+                _pendingCarryOverTaskTexts.Clear();
+                _pendingCarryOverTaskTexts.AddRange(
+                    Tasks
+                        .Where(t => !t.Completed)
+                        .Select(t => t.Text?.Trim())
+                        .Where(text => !string.IsNullOrWhiteSpace(text))
+                        .Select(text => text!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase));
+            }
+            else
+            {
+                _pendingCarryOverTaskTexts.Clear();
+            }
+        }
+
         // End current session
         if (!string.IsNullOrEmpty(SessionId))
         {
@@ -540,6 +642,7 @@ public partial class MainViewModel : ObservableObject
         SessionNotes = "";
 
         ChangeMode(nextMode);
+        await RestoreCarryOverTasksIfNeededAsync(nextMode);
         UpdateSessionInfo();
     }
 
@@ -595,11 +698,18 @@ public partial class MainViewModel : ObservableObject
                 SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
                 Tasks.Clear();
                 SessionNotes = "";
+                ResetReminderFlags();
 
                 _ = _sessionRepository.CreateSession(SessionId, Mode, DateTime.Now);
                 _ = LoadSessions();
 
                 _timerService.Start(TimeLeft);
+
+                if (AutoOpenTasksOnSessionStart && Mode == "pomodoro")
+                {
+                    CloseAllOverlays();
+                    ShowTasks = true;
+                }
             }
             else
             {
@@ -622,6 +732,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ResetTimer()
     {
+        ResetReminderFlags();
         _timerService.Reset(_times[Mode]);
         TimeLeft = _times[Mode];
         IsRunning = false;
@@ -644,6 +755,7 @@ public partial class MainViewModel : ObservableObject
         CloseAllOverlays();
 
         Mode = newMode;
+        ResetReminderFlags();
         TimeLeft = _times[Mode];
         IsRunning = false;
         _timerService.Reset(TimeLeft);
@@ -770,6 +882,7 @@ public partial class MainViewModel : ObservableObject
         SessionId = null;
         Tasks.Clear();
         SessionNotes = "";
+        _pendingCarryOverTaskTexts.Clear();
 
         ResetTimer();
         UpdateSessionInfo();
@@ -1033,6 +1146,102 @@ public partial class MainViewModel : ObservableObject
                 SessionInfo = $"{completedTasks}/{totalTasks} tasks ready";
             }
         }
+
+        OnPropertyChanged(nameof(SessionGoalProgressText));
+    }
+
+    private string BuildPomodoroCompletionMessage()
+    {
+        if (SessionTaskGoal <= 0)
+        {
+            return "Great work! Time for a break.";
+        }
+
+        var completedTasks = Tasks.Count(t => t.Completed);
+        if (completedTasks >= SessionTaskGoal)
+        {
+            return $"Great work! Goal hit: {completedTasks}/{SessionTaskGoal} tasks.";
+        }
+
+        var remaining = SessionTaskGoal - completedTasks;
+        var suffix = remaining == 1 ? "" : "s";
+        return $"Break time. {remaining} more task{suffix} to hit your goal.";
+    }
+
+    private void ResetReminderFlags()
+    {
+        _midpointReminderTriggered = false;
+        _lastMinuteAlertTriggered = false;
+    }
+
+    private async Task MaybeSendFocusRemindersAsync(int remainingSeconds)
+    {
+        if (!IsRunning || Mode != "pomodoro")
+        {
+            return;
+        }
+
+        var totalFocusSeconds = _times["pomodoro"];
+
+        if (IsMidpointReminderEnabled &&
+            !_midpointReminderTriggered &&
+            totalFocusSeconds >= 120 &&
+            remainingSeconds <= totalFocusSeconds / 2)
+        {
+            _midpointReminderTriggered = true;
+
+            if (IsNotificationEnabled)
+            {
+                await _notificationService.ShowNotificationAsync(
+                    "Halfway There",
+                    "You're halfway through this focus block.");
+            }
+        }
+
+        if (IsLastMinuteAlertEnabled &&
+            !_lastMinuteAlertTriggered &&
+            totalFocusSeconds >= 120 &&
+            remainingSeconds <= 60)
+        {
+            _lastMinuteAlertTriggered = true;
+
+            if (IsNotificationEnabled)
+            {
+                await _notificationService.ShowNotificationAsync(
+                    "Final Minute",
+                    "One minute left. Wrap up your current task.");
+            }
+
+            if (IsVibrationEnabled && _vibrationService.IsSupported)
+            {
+                _vibrationService.Vibrate(200);
+            }
+        }
+    }
+
+    private async Task RestoreCarryOverTasksIfNeededAsync(string nextMode)
+    {
+        if (nextMode != "pomodoro" ||
+            !CarryIncompleteTasksToNextSession ||
+            _pendingCarryOverTaskTexts.Count == 0)
+        {
+            return;
+        }
+
+        var nextSessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        SessionId = nextSessionId;
+        await _sessionRepository.CreateSession(nextSessionId, nextMode, DateTime.Now);
+
+        foreach (var taskText in _pendingCarryOverTaskTexts)
+        {
+            var task = await _taskRepository.Add(taskText, nextSessionId);
+            if (task != null)
+            {
+                Tasks.Add(task);
+            }
+        }
+
+        _pendingCarryOverTaskTexts.Clear();
     }
 
     public string FormatTime(int seconds)

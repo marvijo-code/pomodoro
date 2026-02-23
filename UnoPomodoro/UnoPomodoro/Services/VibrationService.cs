@@ -2,7 +2,9 @@ using System;
 
 #if __ANDROID__
 using Android.Content;
+using Android.Content.PM;
 using Android.OS;
+using AndroidX.Core.Content;
 #endif
 
 namespace UnoPomodoro.Services;
@@ -11,14 +13,31 @@ public class VibrationService : IVibrationService
 {
 #if __ANDROID__
     private readonly Vibrator? _vibrator;
+    private readonly Context _context;
 
     public VibrationService()
     {
-        var context = Android.App.Application.Context;
-        _vibrator = context.GetSystemService(Context.VibratorService) as Vibrator;
+        _context = Android.App.Application.Context;
+
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
+        {
+            var manager = _context.GetSystemService(Context.VibratorManagerService) as VibratorManager;
+            _vibrator = manager?.DefaultVibrator;
+        }
+        else
+        {
+            _vibrator = _context.GetSystemService(Context.VibratorService) as Vibrator;
+        }
     }
 
-    public bool IsSupported => _vibrator?.HasVibrator ?? false;
+    public bool IsSupported => HasVibratePermission() && (_vibrator?.HasVibrator ?? false);
+
+    private bool HasVibratePermission()
+    {
+        return ContextCompat.CheckSelfPermission(
+            _context,
+            global::Android.Manifest.Permission.Vibrate) == Permission.Granted;
+    }
 
     public void Vibrate(int durationMs = 500)
     {
@@ -47,7 +66,7 @@ public class VibrationService : IVibrationService
     {
         try
         {
-            if (_vibrator == null || !IsSupported) return;
+            if (_vibrator == null || !IsSupported || pattern.Length == 0) return;
 
             if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             {
