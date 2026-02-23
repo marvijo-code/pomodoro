@@ -1,0 +1,35 @@
+###############################################################################
+# Line endings
+#
+# This repo is primarily LF. Force LF checkouts regardless of a developer's
+# `core.autocrlf` setting to avoid noisy "LF will be replaced by CRLF" warnings.
+###############################################################################
+
+* text=auto eol=lf
+
+# Windows scripts should stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+###############################################################################
+# Binary files
+###############################################################################
+
+*.png  -text
+*.jpg  -text
+*.jpeg -text
+*.gif  -text
+*.ico  -text
+*.webp -text
+
+*.mp3  -text
+*.wav  -text
+*.ogg  -text
+
+*.zip  -text
+*.7z   -text
+*.gz   -text
+*.tar  -text
+
+*.pdf  -text
