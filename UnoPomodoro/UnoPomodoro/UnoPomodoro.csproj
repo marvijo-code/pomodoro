@@ -17,6 +17,9 @@
     <!-- Package Description -->
     <Description>Pomodoro Vijo helps you stay focused with polished Pomodoro cycles.</Description>
 
+    <!-- Suppress warnings from transitive native RID assets (SQLitePCLRaw) on .NET 8+ -->
+    <NoWarn>$(NoWarn);NETSDK1206;NU1903;XA0141</NoWarn>
+
     <!--
       UnoFeatures lets you quickly add and manage implicit package references based on the features you want to use.
       https://aka.platform.uno/singleproject-features
@@ -26,7 +29,6 @@
     <!-- Completely disable Fast Deployment to avoid override directory issues -->
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
-    <AndroidFastDeploymentType>None</AndroidFastDeploymentType>
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
     <!-- Ensure native libraries are stored uncompressed in APK -->
     <AndroidStoreUncompressedFileExtensions>.dll;.so</AndroidStoreUncompressedFileExtensions>

@@ -15,8 +15,8 @@ namespace UnoPomodoro.Services
             var intent = new Intent(context, typeof(TimerForegroundService));
             intent.PutExtra("mode", CurrentMode);
             intent.PutExtra("totalSeconds", TotalDurationSeconds);
-            
-            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.O)
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
             {
                 context.StartForegroundService(intent);
             }

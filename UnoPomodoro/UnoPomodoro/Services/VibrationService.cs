@@ -19,7 +19,7 @@ public class VibrationService : IVibrationService
     {
         _context = Android.App.Application.Context;
 
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
+        if (OperatingSystem.IsAndroidVersionAtLeast(31))
         {
             var manager = _context.GetSystemService(Context.VibratorManagerService) as VibratorManager;
             _vibrator = manager?.DefaultVibrator;
@@ -45,7 +45,7 @@ public class VibrationService : IVibrationService
         {
             if (_vibrator == null || !IsSupported) return;
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
             {
                 _vibrator.Vibrate(VibrationEffect.CreateOneShot(durationMs, VibrationEffect.DefaultAmplitude));
             }
@@ -68,7 +68,7 @@ public class VibrationService : IVibrationService
         {
             if (_vibrator == null || !IsSupported || pattern.Length == 0) return;
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
             {
                 _vibrator.Vibrate(VibrationEffect.CreateWaveform(pattern, repeat ? 0 : -1));
             }

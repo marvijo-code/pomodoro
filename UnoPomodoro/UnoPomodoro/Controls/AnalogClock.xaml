@@ -25,8 +25,7 @@
     <Line x:Name="SweepHand"
       Stroke="{Binding ProgressBrush, ElementName=ClockRoot}"
       StrokeThickness="6"
-      StrokeStartLineCap="Round"
-          StrokeEndLineCap="Round" />
+      />
 
     <Ellipse x:Name="CenterDot"
      Width="16" Height="16"

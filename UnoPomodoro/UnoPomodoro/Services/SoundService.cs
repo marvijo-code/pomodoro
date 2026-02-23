@@ -15,7 +15,6 @@ namespace UnoPomodoro.Services;
 public class SoundService : ISoundService, IDisposable
 {
 #if __ANDROID__
-    private Ringtone? _ringtone;
     private Android.Media.MediaPlayer? _mediaPlayer;
 #else
     private MediaPlayer? _mediaPlayer;

@@ -79,6 +79,9 @@ jobs:
       shell: pwsh
       run: |
         git fetch --tags --force
+        if ($LASTEXITCODE -ne 0) {
+          throw "git fetch --tags --force failed with exit code $LASTEXITCODE"
+        }
 
         $bump = "${{ github.event.inputs.bump }}"
         if (-not $bump) { $bump = "patch" }
@@ -134,7 +137,11 @@ jobs:
           while ($true) {
             $candidateTag = "v$major.$minor.$patch"
             git rev-parse -q --verify "refs/tags/$candidateTag" 1>$null 2>$null
-            if ($LASTEXITCODE -ne 0) { break }
+            if ($LASTEXITCODE -ne 0) {
+              # git rev-parse returns non-zero when the tag does not exist; reset so the step doesn't fail.
+              $global:LASTEXITCODE = 0
+              break
+            }
             $patch += 1
           }
         }
@@ -156,6 +163,8 @@ jobs:
         "TAG=$newTag" >> $env:GITHUB_OUTPUT
         "VERSION_CODE=$versionCode" >> $env:GITHUB_OUTPUT
         "BUMP=$bump" >> $env:GITHUB_OUTPUT
+
+        exit 0
 
     - name: Build Release APK (versioned)
       run: >

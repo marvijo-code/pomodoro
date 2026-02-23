@@ -44,18 +44,19 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
     
     private void RequestNotificationPermission()
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
-            if (ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) != Permission.Granted)
+            const string postNotificationsPermission = "android.permission.POST_NOTIFICATIONS";
+            if (ContextCompat.CheckSelfPermission(this, postNotificationsPermission) != Permission.Granted)
             {
-                ActivityCompat.RequestPermissions(this, new[] { Android.Manifest.Permission.PostNotifications }, 1001);
+                ActivityCompat.RequestPermissions(this, new[] { postNotificationsPermission }, 1001);
             }
         }
     }
     
     private void RequestBatteryOptimizationExemption()
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+        if (OperatingSystem.IsAndroidVersionAtLeast(23))
         {
             var powerManager = GetSystemService(PowerService) as PowerManager;
             var packageName = PackageName;
@@ -77,32 +78,36 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
             return;
         }
 
-        Window.SetStatusBarColor(Color.Black);
-        Window.SetNavigationBarColor(Color.Black);
-
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+        if (!OperatingSystem.IsAndroidVersionAtLeast(35))
         {
-            Window.SetDecorFitsSystemWindows(false);
-            var controller = Window.InsetsController;
+#pragma warning disable CA1422 // Validate platform compatibility - API obsolete on Android 35+
+            Window.SetStatusBarColor(Color.Black);
+            Window.SetNavigationBarColor(Color.Black);
+#pragma warning restore CA1422
+        }
+
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
+        {
+            WindowCompat.SetDecorFitsSystemWindows(Window, false);
+
+            var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
             if (controller != null)
             {
-                controller.Hide(WindowInsets.Type.StatusBars() | WindowInsets.Type.NavigationBars());
-                controller.SystemBarsBehavior = (int)WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
+                controller.Hide(WindowInsetsCompat.Type.StatusBars() | WindowInsetsCompat.Type.NavigationBars());
+                controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
             }
         }
         else
         {
-#pragma warning disable CA1422 // Validate platform compatibility - legacy immersive mode for older devices
             Window.AddFlags(WindowManagerFlags.Fullscreen);
-            var systemUiFlags = (StatusBarVisibility)(
+            var flags =
                 SystemUiFlags.Fullscreen |
                 SystemUiFlags.HideNavigation |
                 SystemUiFlags.ImmersiveSticky |
                 SystemUiFlags.LayoutStable |
                 SystemUiFlags.LayoutFullscreen |
-                SystemUiFlags.LayoutHideNavigation);
-            Window.DecorView.SystemUiVisibility = systemUiFlags;
-#pragma warning restore CA1422
+                SystemUiFlags.LayoutHideNavigation;
+            Window.DecorView.SystemUiFlags = flags;
         }
     }
 

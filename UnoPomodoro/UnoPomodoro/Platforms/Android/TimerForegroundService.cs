@@ -66,9 +66,9 @@ namespace UnoPomodoro.Platforms.Android
                 .SetContentIntent(contentIntent)
                 .Build();
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.UpsideDownCake) // Android 14
+            if (OperatingSystem.IsAndroidVersionAtLeast(34))
             {
-                 StartForeground(TimerNotificationId, notification, global::Android.Content.PM.ForegroundService.TypeSpecialUse);
+                StartForeground(TimerNotificationId, notification, global::Android.Content.PM.ForegroundService.TypeSpecialUse);
             }
             else
             {
@@ -82,9 +82,14 @@ namespace UnoPomodoro.Platforms.Android
         {
             var intent = new Intent(this, typeof(global::UnoPomodoro.Droid.MainActivity));
             intent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
-            return PendingIntent.GetActivity(
-                this, 0, intent,
-                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+
+            var flags = PendingIntentFlags.UpdateCurrent;
+            if (OperatingSystem.IsAndroidVersionAtLeast(23))
+            {
+                flags |= PendingIntentFlags.Immutable;
+            }
+
+            return PendingIntent.GetActivity(this, 0, intent, flags);
         }
         
         private string GetModeTitle()
@@ -116,10 +121,14 @@ namespace UnoPomodoro.Platforms.Android
                 var powerManager = GetSystemService(PowerService) as PowerManager;
                 if (powerManager != null)
                 {
-                    _wakeLock = powerManager.NewWakeLock(
+                    var wakeLock = powerManager.NewWakeLock(
                         WakeLockFlags.Partial,
                         "UnoPomodoro::TimerWakeLock");
-                    _wakeLock.SetReferenceCounted(false);
+                    if (wakeLock != null)
+                    {
+                        wakeLock.SetReferenceCounted(false);
+                        _wakeLock = wakeLock;
+                    }
                 }
             }
             
@@ -205,11 +214,11 @@ namespace UnoPomodoro.Platforms.Android
                 
                 var fullScreenIntent = PendingIntent.GetActivity(
                     this, 1, openIntent,
-                    PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
-                
+                    GetPendingIntentFlags());
+                 
                 var contentIntent = PendingIntent.GetActivity(
                     this, 2, openIntent,
-                    PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+                    GetPendingIntentFlags());
 
                 var notification = new NotificationCompat.Builder(this, CompletionChannelId)
                     .SetContentTitle(title)
@@ -254,7 +263,7 @@ namespace UnoPomodoro.Platforms.Android
 
         private void CreateNotificationChannels()
         {
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
             {
                 var notificationManager = GetSystemService(NotificationService) as NotificationManager;
                 
@@ -275,13 +284,34 @@ namespace UnoPomodoro.Platforms.Android
                 notificationManager?.CreateNotificationChannel(completionChannel);
             }
         }
+
+        private static PendingIntentFlags GetPendingIntentFlags()
+        {
+            var flags = PendingIntentFlags.UpdateCurrent;
+            if (OperatingSystem.IsAndroidVersionAtLeast(23))
+            {
+                flags |= PendingIntentFlags.Immutable;
+            }
+
+            return flags;
+        }
         
         public override void OnDestroy()
         {
             ReleaseWakeLock();
             _instance = null;
             base.OnDestroy();
-            StopForeground(StopForegroundFlags.Remove);
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(24))
+            {
+                StopForeground(StopForegroundFlags.Remove);
+            }
+            else
+            {
+#pragma warning disable CS0618
+                StopForeground(true);
+#pragma warning restore CS0618
+            }
         }
     }
 }
