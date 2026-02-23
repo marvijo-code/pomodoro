@@ -405,8 +405,9 @@ public class MainViewModelTests
         // Assert
         _viewModel.IsRunning.Should().BeFalse();
         _viewModel.IsRinging.Should().BeTrue();
+        _viewModel.ShowCompletionDialog.Should().BeTrue();
+        _viewModel.CompletionTitle.Should().Be("Pomodoro Completed!");
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockNotificationService.Verify(x => x.ShowNotificationAsync("Pomodoro Completed", "Great work! Time for a break."), Times.Once);
     }
 
     [Fact]
@@ -420,8 +421,8 @@ public class MainViewModelTests
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
 
-        // Assert
-        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), false), Times.Once);
+        // Assert - repeat=true so alarm vibrates until user dismisses completion dialog
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), true), Times.Once);
     }
 
     [Fact]
@@ -472,7 +473,7 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task TimerCompleted_WithSessionGoal_ShouldIncludeGoalStatusInNotification()
+    public async Task TimerCompleted_WithSessionGoal_ShouldIncludeGoalStatusInCompletionMessage()
     {
         // Arrange
         _viewModel.IsRunning = true;
@@ -487,12 +488,9 @@ public class MainViewModelTests
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
         await Task.Delay(50);
 
-        // Assert
-        _mockNotificationService.Verify(
-            x => x.ShowNotificationAsync(
-                "Pomodoro Completed",
-                It.Is<string>(content => content.Contains("1 more task"))),
-            Times.Once);
+        // Assert - completion message should contain goal progress
+        _viewModel.ShowCompletionDialog.Should().BeTrue();
+        _viewModel.CompletionMessage.Should().Contain("1 more task");
     }
 
     [Fact]
@@ -688,7 +686,7 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void AfterFourPomodoros_ShouldSwitchToLongBreak()
+    public void AfterFourPomodoros_ShouldShowLongBreakInCompletionDialog()
     {
         // Arrange
         _viewModel.IsRunning = true;
@@ -699,13 +697,14 @@ public class MainViewModelTests
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
 
-        // Assert
-        _viewModel.Mode.Should().Be("longBreak");
-        _viewModel.TimeLeft.Should().Be(15 * 60);
+        // Assert - mode stays as pomodoro until user dismisses the dialog
+        _viewModel.ShowCompletionDialog.Should().BeTrue();
+        _viewModel.NextActionLabel.Should().Be("Start Long Break");
+        _viewModel.Mode.Should().Be("pomodoro"); // Not changed yet
     }
 
     [Fact]
-    public void AfterThreePomodoros_ShouldSwitchToShortBreak()
+    public void AfterThreePomodoros_ShouldShowShortBreakInCompletionDialog()
     {
         // Arrange
         _viewModel.IsRunning = true;
@@ -715,8 +714,10 @@ public class MainViewModelTests
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
 
-        // Assert
-        _viewModel.Mode.Should().Be("shortBreak");
+        // Assert - mode stays as pomodoro until user dismisses the dialog
+        _viewModel.ShowCompletionDialog.Should().BeTrue();
+        _viewModel.NextActionLabel.Should().Be("Start Short Break");
+        _viewModel.Mode.Should().Be("pomodoro"); // Not changed yet
     }
 
     // ── Session notes tests ──────────────────────────────────────

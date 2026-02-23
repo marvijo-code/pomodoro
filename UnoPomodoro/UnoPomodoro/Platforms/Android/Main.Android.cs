@@ -10,6 +10,13 @@ using Android.Views;
 using Android.Widget;
 using Microsoft.UI.Xaml.Media;
 
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.Vibrate)]
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.WakeLock)]
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.ForegroundService)]
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.ForegroundServiceSpecialUse)]
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.PostNotifications)]
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.UseFullScreenIntent)]
+
 namespace UnoPomodoro.Droid;
 
 [global::Android.App.ApplicationAttribute(

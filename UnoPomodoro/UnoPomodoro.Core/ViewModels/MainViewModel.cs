@@ -49,6 +49,23 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRinging;
 
+    // ── Completion dialog state ──────────────────────────────────
+
+    [ObservableProperty]
+    private bool _showCompletionDialog;
+
+    [ObservableProperty]
+    private string _completionTitle = "";
+
+    [ObservableProperty]
+    private string _completionMessage = "";
+
+    [ObservableProperty]
+    private string _nextActionLabel = "";
+
+    private string _pendingNextMode = "shortBreak";
+    private bool _completionHandled;
+
     // ── Task management ──────────────────────────────────────────
 
     [ObservableProperty]
@@ -538,32 +555,25 @@ public partial class MainViewModel : ObservableObject
         _ = MaybeSendFocusRemindersAsync(remainingSeconds);
     }
 
-    private async void OnTimerCompleted(object? sender, EventArgs e)
+    private void OnTimerCompleted(object? sender, EventArgs e)
     {
+        if (_completionHandled) return;
+        _completionHandled = true;
+
         IsRunning = false;
         bool wasPomodoro = Mode == "pomodoro";
 
-        // Sound notification
+        // Sound notification (repeating until dismissed)
         if (IsSoundEnabled)
         {
             IsRinging = true;
             _soundService?.PlayNotificationSound();
         }
 
-        // Vibration notification
+        // Vibration notification (repeating until dismissed)
         if (IsVibrationEnabled && _vibrationService.IsSupported)
         {
-            _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, false);
-        }
-
-        // System notification
-        if (IsNotificationEnabled)
-        {
-            var title = wasPomodoro ? "Pomodoro Completed" : "Break Over";
-            var content = wasPomodoro
-                ? BuildPomodoroCompletionMessage()
-                : "Break is over. Ready to focus?";
-            await _notificationService.ShowNotificationAsync(title, content);
+            _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
         }
 
         // Track pomodoro completions for long-break logic
@@ -572,25 +582,76 @@ public partial class MainViewModel : ObservableObject
             PomodoroCount++;
         }
 
-        // Auto-advance to next session type
+        // Determine next mode for the dialog
+        if (wasPomodoro)
+        {
+            _pendingNextMode = (PomodoroCount % PomodorosBeforeLongBreak == 0)
+                ? "longBreak"
+                : "shortBreak";
+        }
+        else
+        {
+            _pendingNextMode = "pomodoro";
+        }
+
+        // Set dialog content
+        CompletionTitle = wasPomodoro ? "Pomodoro Completed!" : "Break Over!";
+        CompletionMessage = wasPomodoro
+            ? BuildPomodoroCompletionMessage()
+            : "Break is over. Ready to focus?";
+        NextActionLabel = _pendingNextMode switch
+        {
+            "shortBreak" => "Start Short Break",
+            "longBreak" => "Start Long Break",
+            _ => "Start Focus"
+        };
+
+        // Show the completion dialog
+        ShowCompletionDialog = true;
+    }
+
+    [RelayCommand]
+    private async Task DismissCompletion()
+    {
+        // Stop alarm (sound + vibration)
+        StopAlarm();
+
+        // Dismiss the completion notification from the notification drawer
+        _notificationService.DismissCompletionNotification();
+
+        // Hide the dialog
+        ShowCompletionDialog = false;
+
+        // Advance to the next session
+        await AutoAdvanceSession();
+
+        // Refresh dashboard stats
+        await LoadDashboardStatsAsync();
+    }
+
+    [RelayCommand]
+    private async Task DismissCompletionAndStart()
+    {
+        // Stop alarm (sound + vibration)
+        StopAlarm();
+
+        // Dismiss the completion notification from the notification drawer
+        _notificationService.DismissCompletionNotification();
+
+        // Hide the dialog
+        ShowCompletionDialog = false;
+
+        // Advance to the next session
         await AutoAdvanceSession();
 
         // Refresh dashboard stats
         await LoadDashboardStatsAsync();
 
-        // Auto-start next session if enabled
-        bool shouldAutoStart = wasPomodoro
-            ? AutoStartBreaks   // after a pomodoro, auto-start the break
-            : AutoStartPomodoros; // after a break, auto-start the pomodoro
-
-        if (shouldAutoStart)
+        // Start the next timer after a short delay
+        await Task.Delay(Math.Max(1, AutoStartDelaySeconds) * 1000);
+        if (!IsRunning)
         {
-            // Short delay so the user sees the transition
-            await Task.Delay(Math.Max(1, AutoStartDelaySeconds) * 1000);
-            if (!IsRunning) // guard in case user manually started
-            {
-                ToggleTimer();
-            }
+            ToggleTimer();
         }
     }
 
@@ -699,10 +760,12 @@ public partial class MainViewModel : ObservableObject
                 Tasks.Clear();
                 SessionNotes = "";
                 ResetReminderFlags();
+                _completionHandled = false;
 
                 _ = _sessionRepository.CreateSession(SessionId, Mode, DateTime.Now);
                 _ = LoadSessions();
 
+                _timerService.CurrentMode = Mode;
                 _timerService.Start(TimeLeft);
 
                 if (AutoOpenTasksOnSessionStart && Mode == "pomodoro")

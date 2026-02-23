@@ -9,7 +9,7 @@ public class NotificationService : INotificationService
     private const string ChannelId = "pomodoro_notifications";
     private const string ChannelName = "Pomodoro Notifications";
     private const string ChannelDescription = "Notifications for Pomodoro timer events";
-    private int _notificationId;
+    private int _notificationId = 2000; // Start above the foreground service IDs
 
     public NotificationService()
     {
@@ -57,11 +57,28 @@ public class NotificationService : INotificationService
 
         return Task.CompletedTask;
     }
+    
+    public void DismissCompletionNotification()
+    {
+        try
+        {
+            UnoPomodoro.Platforms.Android.TimerForegroundService.DismissCompletionNotification();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error dismissing completion notification: {ex.Message}");
+        }
+    }
 #else
     public Task ShowNotificationAsync(string title, string content)
     {
         System.Diagnostics.Debug.WriteLine($"Notification: {title} - {content}");
         return Task.CompletedTask;
+    }
+    
+    public void DismissCompletionNotification()
+    {
+        // No-op on non-Android platforms
     }
 #endif
 }

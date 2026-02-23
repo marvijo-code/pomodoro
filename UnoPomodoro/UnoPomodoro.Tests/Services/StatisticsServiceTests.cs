@@ -233,11 +233,18 @@ public class StatisticsServiceTests
     [Fact]
     public async Task GetWeeklyStatsAsync_ShouldReturnWeeklyStatistics()
     {
-        // Arrange
+        // Arrange — use explicit dates guaranteed to be in the same ISO week
+        // Pick a Wednesday and the day before (Tuesday) so they can't span a week boundary
+        var wednesday = DateTime.Today;
+        // Find the next Wednesday (or use today if it's Wednesday)
+        while (wednesday.DayOfWeek != DayOfWeek.Wednesday)
+            wednesday = wednesday.AddDays(1);
+        var tuesday = wednesday.AddDays(-1);
+
         var sessions = new List<Session>
         {
-            new Session("session1", "pomodoro", DateTime.Now) { EndTime = DateTime.Now.AddMinutes(25) },
-            new Session("session2", "pomodoro", DateTime.Now.AddDays(-1)) { EndTime = DateTime.Now.AddDays(-1).AddMinutes(25) }
+            new Session("session1", "pomodoro", wednesday.AddHours(10)) { EndTime = wednesday.AddHours(10).AddMinutes(25) },
+            new Session("session2", "pomodoro", tuesday.AddHours(10)) { EndTime = tuesday.AddHours(10).AddMinutes(25) }
         };
 
         var tasks = new List<TaskItem>

@@ -1176,5 +1176,53 @@
         </StackPanel>
       </Border>
     </Border>
+
+    <!-- Completion Dialog Overlay -->
+    <Border Grid.Row="0" 
+            Grid.RowSpan="5"
+            Background="#AA000000"
+            Visibility="{Binding ShowCompletionDialog, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="25">
+      <Border Background="{StaticResource SurfaceColor}"
+              CornerRadius="16"
+              Padding="24"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="300">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{Binding CompletionTitle}"
+                     FontSize="22"
+                     FontWeight="Medium"
+                     Foreground="{StaticResource OnSurfaceColor}"
+                     HorizontalAlignment="Center" />
+
+          <TextBlock Text="{Binding CompletionMessage}"
+                     FontSize="14"
+                     Foreground="{StaticResource OnSurfaceVariantColor}"
+                     HorizontalAlignment="Center"
+                     TextWrapping="Wrap"
+                     TextAlignment="Center" />
+
+          <Grid ColumnSpacing="12" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0"
+                    Content="Dismiss"
+                    Command="{Binding DismissCompletionCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    HorizontalAlignment="Stretch" />
+            
+            <Button Grid.Column="1"
+                    Content="{Binding NextActionLabel}"
+                    Command="{Binding DismissCompletionAndStartCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    HorizontalAlignment="Stretch" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </Border>
   </Grid>
 </Page>

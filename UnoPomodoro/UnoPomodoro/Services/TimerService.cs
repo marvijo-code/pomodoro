@@ -16,6 +16,9 @@ namespace UnoPomodoro.Services
         public event EventHandler? TimerCompleted;
         
         public DateTime TargetEndTime => _targetEndTime;
+        
+        public string CurrentMode { get; set; } = "pomodoro";
+        public int TotalDurationSeconds { get; set; } = 25 * 60;
 
         public TimerService()
         {
@@ -27,6 +30,7 @@ namespace UnoPomodoro.Services
             _remainingSeconds = seconds;
             _targetEndTime = DateTime.UtcNow.AddSeconds(seconds);
             _isRunning = true;
+            TotalDurationSeconds = seconds;
             
             StartTimer();
             StartPlatformBackgroundService();
@@ -131,7 +135,7 @@ namespace UnoPomodoro.Services
                 var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
                 _remainingSeconds = Math.Max(0, (int)remaining.TotalSeconds);
                 
-                // Update foreground service notification
+                // Update foreground service notification (runs on thread pool - handles lock screen)
                 UpdatePlatformNotification(_remainingSeconds);
                 
                 // Marshal to UI thread

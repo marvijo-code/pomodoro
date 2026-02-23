@@ -66,10 +66,10 @@ public class SessionRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.EndTime.Should().Be(endTime);
+        result!.EndTime.Should().Be(endTime);
         
         var dbSession = _connection.Table<Session>().FirstOrDefault(s => s.Id == sessionId);
-        dbSession.EndTime.Should().Be(endTime);
+        dbSession!.EndTime.Should().Be(endTime);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class SessionRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Id.Should().Be(sessionId);
+        result!.Id.Should().Be(sessionId);
     }
 
     [Fact]

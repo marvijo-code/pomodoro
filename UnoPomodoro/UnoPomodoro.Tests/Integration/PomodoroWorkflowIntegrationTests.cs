@@ -186,7 +186,8 @@ public class PomodoroWorkflowIntegrationTests
         _mockTaskRepository.Verify(x => x.Add("Task 2", It.IsAny<string>()), Times.Once);
         _mockTaskRepository.Verify(x => x.ToggleCompleted(1, true), Times.Once);
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockNotificationService.Verify(x => x.ShowNotificationAsync("Pomodoro Completed", "Great work! Time for a break."), Times.Once);
+        _mainViewModel.ShowCompletionDialog.Should().BeTrue();
+        _mainViewModel.CompletionTitle.Should().Be("Pomodoro Completed!");
         _mockStatisticsService.Verify(x => x.GetDailyStatsAsync(), Times.AtLeastOnce);
     }
 
@@ -227,11 +228,12 @@ public class PomodoroWorkflowIntegrationTests
 
         // Assert
         _mockSessionRepository.Verify(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()), Times.Once);
-        _mockSessionRepository.Verify(x => x.EndSession(It.IsAny<string>(), It.IsAny<DateTime>()), Times.AtLeastOnce);
 
-        // Verify that the mode changed to short break
-        _mainViewModel.Mode.Should().Be("shortBreak");
-        _mainViewModel.TimeLeft.Should().Be(5 * 60); // 5 minutes for short break
+        // Verify that completion dialog is shown instead of auto-advancing
+        _mainViewModel.ShowCompletionDialog.Should().BeTrue();
+        _mainViewModel.NextActionLabel.Should().Be("Start Short Break");
+        // Mode stays as pomodoro until user dismisses the dialog
+        _mainViewModel.Mode.Should().Be("pomodoro");
     }
 
     [Fact]
@@ -406,18 +408,14 @@ public class PomodoroWorkflowIntegrationTests
         _mockSoundService.Setup(x => x.PlayNotificationSound())
             .Verifiable();
 
-        _mockNotificationService.Setup(x => x.ShowNotificationAsync("Pomodoro Completed", "Great work! Time for a break."))
-            .Returns(Task.CompletedTask)
-            .Verifiable();
-
         // Act
         _mainViewModel.ToggleTimerCommand.Execute(null);
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
 
         // Assert
         _mainViewModel.IsRinging.Should().BeTrue();
+        _mainViewModel.ShowCompletionDialog.Should().BeTrue();
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockNotificationService.Verify(x => x.ShowNotificationAsync("Pomodoro Completed", "Great work! Time for a break."), Times.Once);
 
         // Test stopping alarm
         _mainViewModel.StopAlarmCommand.Execute(null);
@@ -461,7 +459,7 @@ public class PomodoroWorkflowIntegrationTests
 
         // Assert
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), false), Times.Once);
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), true), Times.Once);
     }
 
     [Fact]
@@ -478,7 +476,9 @@ public class PomodoroWorkflowIntegrationTests
 
         // Assert
         _mainViewModel.PomodoroCount.Should().Be(4);
-        _mainViewModel.Mode.Should().Be("longBreak");
-        _mainViewModel.TimeLeft.Should().Be(15 * 60);
+        // Mode stays as pomodoro until user dismisses completion dialog
+        _mainViewModel.ShowCompletionDialog.Should().BeTrue();
+        _mainViewModel.NextActionLabel.Should().Be("Start Long Break");
+        _mainViewModel.Mode.Should().Be("pomodoro");
     }
 }

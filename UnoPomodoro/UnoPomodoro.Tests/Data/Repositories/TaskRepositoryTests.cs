@@ -66,7 +66,7 @@ public class TaskRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Text.Should().Be(text);
+        result!.Text.Should().Be(text);
         result.SessionId.Should().Be(sessionId);
         result.Completed.Should().BeFalse();
         result.CompletedAt.Should().BeNull();
@@ -90,7 +90,7 @@ public class TaskRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Completed.Should().BeTrue();
+        result!.Completed.Should().BeTrue();
         result.CompletedAt.Should().BeCloseTo(completedTime, TimeSpan.FromSeconds(5));
         
         var dbTask = _connection.Table<TaskItem>().FirstOrDefault(t => t.Id == taskId);
@@ -124,7 +124,7 @@ public class TaskRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Completed.Should().BeFalse();
+        result!.Completed.Should().BeFalse();
         result.CompletedAt.Should().BeNull();
         
         var dbTask = _connection.Table<TaskItem>().FirstOrDefault(t => t.Id == taskId);
@@ -260,7 +260,7 @@ public class TaskRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Id.Should().Be(taskId);
+        result!.Id.Should().Be(taskId);
     }
 
     [Fact]

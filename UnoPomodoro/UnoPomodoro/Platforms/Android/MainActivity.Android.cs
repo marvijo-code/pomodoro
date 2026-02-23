@@ -4,13 +4,17 @@ using Android.OS;
 using Android.Graphics;
 using Android.Views;
 using AndroidX.Core.View;
+using AndroidX.Core.App;
+using AndroidX.Core.Content;
 
 namespace UnoPomodoro.Droid;
 
 [Activity(
     MainLauncher = true,
     ConfigurationChanges = global::Uno.UI.ActivityHelper.AllConfigChanges,
-    WindowSoftInputMode = SoftInput.AdjustNothing | SoftInput.StateHidden
+    WindowSoftInputMode = SoftInput.AdjustNothing | SoftInput.StateHidden,
+    ShowWhenLocked = true,
+    TurnScreenOn = true
 )]
 public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
 {
@@ -24,6 +28,9 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
         
         // Request battery optimization exemption for reliable timer operation
         RequestBatteryOptimizationExemption();
+        
+        // Request POST_NOTIFICATIONS permission (required on Android 13+)
+        RequestNotificationPermission();
     }
     
     protected override void OnResume()
@@ -33,6 +40,17 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
         // Sync timer with wall clock when app resumes
         // This handles cases where power saving mode may have delayed timer ticks
         TimerResyncHelper.SyncTimer();
+    }
+    
+    private void RequestNotificationPermission()
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+        {
+            if (ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) != Permission.Granted)
+            {
+                ActivityCompat.RequestPermissions(this, new[] { Android.Manifest.Permission.PostNotifications }, 1001);
+            }
+        }
     }
     
     private void RequestBatteryOptimizationExemption()
