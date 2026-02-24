@@ -264,3 +264,16 @@ public enum ReportFormat
     Csv,
     Json
 }
+
+/// <summary>
+/// A reusable timer configuration template (e.g., "Deep Work 50/10",
+/// "Quick Sprint 15/3", "Meeting Recovery 25/15").
+/// </summary>
+public class PomodoroTemplate
+{
+    public string Name { get; set; } = string.Empty;
+    public int PomodoroDuration { get; set; } = 25;   // minutes
+    public int ShortBreakDuration { get; set; } = 5;   // minutes
+    public int LongBreakDuration { get; set; } = 15;   // minutes
+    public int PomodorosBeforeLongBreak { get; set; } = 4;
+}

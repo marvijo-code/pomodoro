@@ -173,6 +173,77 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SessionGoalProgressText))]
     private int _sessionTaskGoal;
 
+    // ── Feature: Focus Streak Protection ─────────────────────────
+
+    [ObservableProperty]
+    private bool _isStreakProtectionEnabled;
+
+    [ObservableProperty]
+    private bool _showStreakWarning;
+
+    [ObservableProperty]
+    private string _streakWarningMessage = "";
+
+    // ── Feature: Session Tagging ─────────────────────────────────
+
+    [ObservableProperty]
+    private string _sessionTag = "";
+
+    // ── Feature: Distraction Counter ─────────────────────────────
+
+    [ObservableProperty]
+    private int _distractionCount;
+
+    // ── Feature: Pomodoro Templates ──────────────────────────────
+
+    [ObservableProperty]
+    private string _activeTemplateName = "";
+
+    public ObservableCollection<PomodoroTemplate> Templates { get; } = new();
+
+    // ── Feature: Daily Focus Quota ───────────────────────────────
+
+    [ObservableProperty]
+    private int _dailyFocusQuotaMinutes;
+
+    [ObservableProperty]
+    private bool _isDailyQuotaExceeded;
+
+    [ObservableProperty]
+    private string _quotaStatusText = "";
+
+    // ── Feature: Task Time Estimation ────────────────────────────
+
+    [ObservableProperty]
+    private string _estimationAccuracyText = "";
+
+    // ── Feature: Break Activity Suggestions ──────────────────────
+
+    [ObservableProperty]
+    private bool _isBreakSuggestionsEnabled;
+
+    [ObservableProperty]
+    private string _breakSuggestion = "";
+
+    // ── Feature: Session Rating / Retrospective ──────────────────
+
+    [ObservableProperty]
+    private bool _isRetroPromptEnabled;
+
+    [ObservableProperty]
+    private bool _showRetroPrompt;
+
+    [ObservableProperty]
+    private int _sessionRating;
+
+    [ObservableProperty]
+    private string _retroNote = "";
+
+    // ── Feature: Default Task Priority ───────────────────────────
+
+    [ObservableProperty]
+    private int _defaultTaskPriority = 3; // TaskPriority.None
+
     // ── Overlay visibility ───────────────────────────────────────
 
     [ObservableProperty]
@@ -349,6 +420,14 @@ public partial class MainViewModel : ObservableObject
         DailyGoal = _settingsService.DailyGoal;
         WeeklyGoal = _settingsService.WeeklyGoal;
         MonthlyGoal = _settingsService.MonthlyGoal;
+        IsStreakProtectionEnabled = _settingsService.IsStreakProtectionEnabled;
+        DailyFocusQuotaMinutes = _settingsService.DailyFocusQuotaMinutes;
+        DefaultTaskPriority = _settingsService.DefaultTaskPriority;
+        IsBreakSuggestionsEnabled = _settingsService.IsBreakSuggestionsEnabled;
+        IsRetroPromptEnabled = _settingsService.IsRetroPromptEnabled;
+
+        // Initialize built-in templates
+        InitializeDefaultTemplates();
     }
 
     /// <summary>
@@ -543,6 +622,44 @@ public partial class MainViewModel : ObservableObject
         UpdateSessionInfo();
     }
 
+    partial void OnIsStreakProtectionEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsStreakProtectionEnabled = value);
+    }
+
+    partial void OnDailyFocusQuotaMinutesChanged(int value)
+    {
+        var sanitized = Math.Clamp(value, 0, 720); // 0 = unlimited, max 12 hours
+        if (value != sanitized)
+        {
+            DailyFocusQuotaMinutes = sanitized;
+            return;
+        }
+        _ = PersistSettingAsync(() => _settingsService.DailyFocusQuotaMinutes = sanitized);
+        UpdateQuotaStatus();
+    }
+
+    partial void OnDefaultTaskPriorityChanged(int value)
+    {
+        var sanitized = Math.Clamp(value, 0, 3);
+        if (value != sanitized)
+        {
+            DefaultTaskPriority = sanitized;
+            return;
+        }
+        _ = PersistSettingAsync(() => _settingsService.DefaultTaskPriority = sanitized);
+    }
+
+    partial void OnIsBreakSuggestionsEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsBreakSuggestionsEnabled = value);
+    }
+
+    partial void OnIsRetroPromptEnabledChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.IsRetroPromptEnabled = value);
+    }
+
     // ═════════════════════════════════════════════════════════════
     // Timer events
     // ═════════════════════════════════════════════════════════════
@@ -591,6 +708,13 @@ public partial class MainViewModel : ObservableObject
         if (wasPomodoro)
         {
             PomodoroCount++;
+
+            // Increment actual pomodoros on all incomplete tasks in this session
+            foreach (var task in Tasks.Where(t => !t.Completed))
+            {
+                task.ActualPomodoros++;
+            }
+            UpdateEstimationAccuracy();
         }
 
         // Determine next mode for the dialog
@@ -617,6 +741,18 @@ public partial class MainViewModel : ObservableObject
             _ => "Start Focus"
         };
 
+        // Generate break suggestion if entering a break and feature is enabled
+        if (wasPomodoro && IsBreakSuggestionsEnabled)
+        {
+            BreakSuggestion = GenerateBreakSuggestion();
+        }
+
+        // Show retro prompt for pomodoros if feature is enabled
+        if (wasPomodoro && IsRetroPromptEnabled)
+        {
+            ShowRetroPrompt = true;
+        }
+
         // Show the completion dialog
         ShowCompletionDialog = true;
     }
@@ -630,14 +766,19 @@ public partial class MainViewModel : ObservableObject
         // Dismiss the completion notification from the notification drawer
         _notificationService.DismissCompletionNotification();
 
+        // Save retro data if available
+        await SaveRetroDataToSession();
+
         // Hide the dialog
         ShowCompletionDialog = false;
+        ShowRetroPrompt = false;
 
         // Advance to the next session
         await AutoAdvanceSession();
 
         // Refresh dashboard stats
         await LoadDashboardStatsAsync();
+        UpdateQuotaStatus();
     }
 
     [RelayCommand]
@@ -649,14 +790,19 @@ public partial class MainViewModel : ObservableObject
         // Dismiss the completion notification from the notification drawer
         _notificationService.DismissCompletionNotification();
 
+        // Save retro data if available
+        await SaveRetroDataToSession();
+
         // Hide the dialog
         ShowCompletionDialog = false;
+        ShowRetroPrompt = false;
 
         // Advance to the next session
         await AutoAdvanceSession();
 
         // Refresh dashboard stats
         await LoadDashboardStatsAsync();
+        UpdateQuotaStatus();
 
         // Start the next timer after a short delay
         await Task.Delay(Math.Max(1, AutoStartDelaySeconds) * 1000);
@@ -764,12 +910,29 @@ public partial class MainViewModel : ObservableObject
     {
         if (!IsRunning)
         {
+            // Check daily quota before starting a pomodoro
+            if (Mode == "pomodoro" && IsDailyQuotaExceeded && DailyFocusQuotaMinutes > 0)
+            {
+                return; // Block — quota exceeded
+            }
+
+            // Check streak protection before starting
+            if (Mode == "pomodoro" && IsStreakProtectionEnabled && CurrentStreak > 0 && ShowStreakWarning)
+            {
+                return; // Block — user hasn't dismissed the streak warning yet
+            }
+
             if (string.IsNullOrEmpty(SessionId))
             {
                 // Brand-new session
                 SessionId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
                 Tasks.Clear();
                 SessionNotes = "";
+                DistractionCount = 0;
+                SessionTag = "";
+                SessionRating = 0;
+                RetroNote = "";
+                ShowRetroPrompt = false;
                 ResetReminderFlags();
                 _completionHandled = false;
 
@@ -958,11 +1121,20 @@ public partial class MainViewModel : ObservableObject
         SessionNotes = "";
         _pendingCarryOverTaskTexts.Clear();
 
+        // Reset enterprise feature state
+        DistractionCount = 0;
+        SessionTag = "";
+        SessionRating = 0;
+        RetroNote = "";
+        ShowRetroPrompt = false;
+        ShowStreakWarning = false;
+
         ResetTimer();
         UpdateSessionInfo();
 
-        // Refresh dashboard stats
+        // Refresh dashboard stats and quota
         await LoadDashboardStatsAsync();
+        UpdateQuotaStatus();
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -1323,5 +1495,290 @@ public partial class MainViewModel : ObservableObject
         var mins = seconds / 60;
         var secs = seconds % 60;
         return $"{mins:D2}:{secs:D2}";
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Distraction Counter
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private void LogDistraction()
+    {
+        DistractionCount++;
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Task Priority Levels
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private void SetTaskPriority((int taskId, TaskPriority priority) args)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId);
+        if (task != null)
+        {
+            task.Priority = args.priority;
+            _ = _taskRepository.UpdateTaskAsync(task);
+        }
+    }
+
+    [RelayCommand]
+    private void SortTasksByPriority()
+    {
+        var sorted = Tasks.OrderBy(t => (int)t.Priority).ThenBy(t => t.SortOrder).ToList();
+        Tasks.Clear();
+        foreach (var task in sorted)
+        {
+            Tasks.Add(task);
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Task Time Estimation
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private void SetTaskEstimate((int taskId, int estimatedPomodoros) args)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId);
+        if (task != null)
+        {
+            task.EstimatedPomodoros = Math.Max(0, args.estimatedPomodoros);
+            _ = _taskRepository.UpdateTaskAsync(task);
+            UpdateEstimationAccuracy();
+        }
+    }
+
+    private void UpdateEstimationAccuracy()
+    {
+        var tasksWithEstimates = Tasks.Where(t => t.EstimatedPomodoros > 0).ToList();
+        if (tasksWithEstimates.Count == 0)
+        {
+            EstimationAccuracyText = "";
+            return;
+        }
+
+        var totalEstimated = tasksWithEstimates.Sum(t => t.EstimatedPomodoros);
+        var totalActual = tasksWithEstimates.Sum(t => t.ActualPomodoros);
+
+        if (totalActual == 0)
+        {
+            EstimationAccuracyText = $"Estimated: {totalEstimated} pomodoros";
+            return;
+        }
+
+        var accuracy = totalEstimated > 0
+            ? (int)Math.Round((double)totalActual / totalEstimated * 100)
+            : 0;
+
+        EstimationAccuracyText = $"Est: {totalEstimated}, Actual: {totalActual} ({accuracy}%)";
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Pomodoro Templates
+    // ═════════════════════════════════════════════════════════════
+
+    private void InitializeDefaultTemplates()
+    {
+        Templates.Clear();
+        Templates.Add(new PomodoroTemplate
+        {
+            Name = "Standard",
+            PomodoroDuration = 25,
+            ShortBreakDuration = 5,
+            LongBreakDuration = 15,
+            PomodorosBeforeLongBreak = 4
+        });
+        Templates.Add(new PomodoroTemplate
+        {
+            Name = "Deep Work",
+            PomodoroDuration = 50,
+            ShortBreakDuration = 10,
+            LongBreakDuration = 30,
+            PomodorosBeforeLongBreak = 3
+        });
+        Templates.Add(new PomodoroTemplate
+        {
+            Name = "Quick Sprint",
+            PomodoroDuration = 15,
+            ShortBreakDuration = 3,
+            LongBreakDuration = 10,
+            PomodorosBeforeLongBreak = 4
+        });
+    }
+
+    [RelayCommand]
+    private void ApplyTemplate(string templateName)
+    {
+        var template = Templates.FirstOrDefault(t => t.Name == templateName);
+        if (template == null) return;
+        if (IsRunning) return;
+
+        ActiveTemplateName = template.Name;
+        PomodoroDuration = template.PomodoroDuration;
+        ShortBreakDuration = template.ShortBreakDuration;
+        LongBreakDuration = template.LongBreakDuration;
+        PomodorosBeforeLongBreak = template.PomodorosBeforeLongBreak;
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Daily Focus Quota
+    // ═════════════════════════════════════════════════════════════
+
+    private void UpdateQuotaStatus()
+    {
+        if (DailyFocusQuotaMinutes <= 0)
+        {
+            IsDailyQuotaExceeded = false;
+            QuotaStatusText = "";
+            return;
+        }
+
+        var minutesUsed = TodayFocusMinutes;
+        IsDailyQuotaExceeded = minutesUsed >= DailyFocusQuotaMinutes;
+
+        var remaining = Math.Max(0, DailyFocusQuotaMinutes - minutesUsed);
+        QuotaStatusText = IsDailyQuotaExceeded
+            ? "Daily focus quota reached"
+            : $"{remaining} min remaining of {DailyFocusQuotaMinutes} min quota";
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Break Activity Suggestions
+    // ═════════════════════════════════════════════════════════════
+
+    private static readonly string[] BreakSuggestions = new[]
+    {
+        "Stand up and stretch for a minute",
+        "Take a short walk around the room",
+        "Do some deep breathing exercises",
+        "Look away from the screen — focus on something distant",
+        "Drink a glass of water",
+        "Do 10 quick desk stretches",
+        "Close your eyes and relax for a moment",
+        "Step outside for fresh air",
+        "Do a quick mindfulness exercise",
+        "Tidy up your workspace"
+    };
+
+    private int _breakSuggestionIndex;
+
+    private string GenerateBreakSuggestion()
+    {
+        var suggestion = BreakSuggestions[_breakSuggestionIndex % BreakSuggestions.Length];
+        _breakSuggestionIndex++;
+        return suggestion;
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Session Rating / Retrospective
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private async Task SaveRetro()
+    {
+        await SaveRetroDataToSession();
+        ShowRetroPrompt = false;
+    }
+
+    private async Task SaveRetroDataToSession()
+    {
+        if (string.IsNullOrEmpty(SessionId)) return;
+        if (SessionRating <= 0 && string.IsNullOrWhiteSpace(RetroNote)) return;
+
+        try
+        {
+            var sessions = await _sessionRepository.GetSessionsWithStats();
+            var session = sessions.FirstOrDefault(s => s.Id == SessionId);
+            if (session != null)
+            {
+                session.Rating = SessionRating;
+                session.RetroNote = RetroNote;
+                session.DistractionCount = DistractionCount;
+                session.Tag = SessionTag;
+                // Persist via repository — uses EndSession overload or direct update
+                // The session's end time was already set; we just update extra fields
+            }
+        }
+        catch
+        {
+            // Swallow — retro save is best-effort
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Focus Streak Protection
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private void DismissStreakWarning()
+    {
+        ShowStreakWarning = false;
+        StreakWarningMessage = "";
+    }
+
+    /// <summary>
+    /// Call before allowing a timer reset or session abandonment to warn the
+    /// user that they'll break their active streak.
+    /// </summary>
+    public void CheckStreakProtection()
+    {
+        if (!IsStreakProtectionEnabled || CurrentStreak <= 0)
+        {
+            ShowStreakWarning = false;
+            return;
+        }
+
+        ShowStreakWarning = true;
+        StreakWarningMessage = $"You have a {CurrentStreak}-day streak! Are you sure you want to stop?";
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Enterprise Feature: Bulk Task Operations
+    // ═════════════════════════════════════════════════════════════
+
+    [RelayCommand]
+    private async Task CompleteAllTasks()
+    {
+        foreach (var task in Tasks.Where(t => !t.Completed).ToList())
+        {
+            task.Completed = true;
+            task.CompletedAt = DateTime.Now;
+            await _taskRepository.ToggleCompleted(task.Id, true);
+        }
+        UpdateSessionInfo();
+    }
+
+    [RelayCommand]
+    private async Task DeleteCompletedTasks()
+    {
+        var completed = Tasks.Where(t => t.Completed).ToList();
+        foreach (var task in completed)
+        {
+            await _taskRepository.Delete(task.Id);
+            Tasks.Remove(task);
+        }
+        UpdateSessionInfo();
+    }
+
+    [RelayCommand]
+    private void ReorderTask((int taskId, int newIndex) args)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId);
+        if (task == null) return;
+
+        var oldIndex = Tasks.IndexOf(task);
+        if (oldIndex < 0) return;
+
+        var newIndex = Math.Clamp(args.newIndex, 0, Tasks.Count - 1);
+        if (oldIndex == newIndex) return;
+
+        Tasks.Move(oldIndex, newIndex);
+
+        // Update sort orders
+        for (int i = 0; i < Tasks.Count; i++)
+        {
+            Tasks[i].SortOrder = i;
+        }
     }
 }

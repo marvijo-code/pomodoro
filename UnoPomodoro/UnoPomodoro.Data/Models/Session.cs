@@ -13,6 +13,27 @@ public class Session
     
     public string Mode { get; set; } = string.Empty;
     
+    /// <summary>
+    /// User-assigned tag/label for the session (e.g., "Project Alpha", "Study", "Deep Work").
+    /// </summary>
+    public string Tag { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// User rating of the session quality (0 = not rated, 1-5 stars).
+    /// Part of the session retrospective feature.
+    /// </summary>
+    public int Rating { get; set; }
+    
+    /// <summary>
+    /// Free-text retrospective note written after session completion.
+    /// </summary>
+    public string RetroNote { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Number of distractions/interruptions logged during the session.
+    /// </summary>
+    public int DistractionCount { get; set; }
+    
     // Additional properties for computed stats
     [Ignore]
     public int TotalTasks { get; set; }

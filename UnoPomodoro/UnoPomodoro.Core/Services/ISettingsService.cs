@@ -46,6 +46,21 @@ public interface ISettingsService
     int WeeklyGoal { get; set; }
     int MonthlyGoal { get; set; }
 
+    // Focus Streak Protection
+    bool IsStreakProtectionEnabled { get; set; }
+
+    // Daily Focus Quota (minutes, 0 = unlimited)
+    int DailyFocusQuotaMinutes { get; set; }
+
+    // Default task priority for new tasks
+    int DefaultTaskPriority { get; set; }
+
+    // Break activity suggestions enabled
+    bool IsBreakSuggestionsEnabled { get; set; }
+
+    // Session retrospective prompt enabled
+    bool IsRetroPromptEnabled { get; set; }
+
     /// <summary>
     /// Saves all settings to persistent storage.
     /// </summary>

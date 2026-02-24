@@ -165,6 +165,41 @@ public class SettingsService : ISettingsService
         set => SetValue("MonthlyGoal", value);
     }
 
+    // Focus Streak Protection
+    public bool IsStreakProtectionEnabled
+    {
+        get => GetValue<bool>("IsStreakProtectionEnabled", false);
+        set => SetValue("IsStreakProtectionEnabled", value);
+    }
+
+    // Daily Focus Quota
+    public int DailyFocusQuotaMinutes
+    {
+        get => GetValue<int>("DailyFocusQuotaMinutes", 0);
+        set => SetValue("DailyFocusQuotaMinutes", value);
+    }
+
+    // Default task priority
+    public int DefaultTaskPriority
+    {
+        get => GetValue<int>("DefaultTaskPriority", 3); // TaskPriority.None
+        set => SetValue("DefaultTaskPriority", value);
+    }
+
+    // Break activity suggestions
+    public bool IsBreakSuggestionsEnabled
+    {
+        get => GetValue<bool>("IsBreakSuggestionsEnabled", false);
+        set => SetValue("IsBreakSuggestionsEnabled", value);
+    }
+
+    // Session retrospective prompt
+    public bool IsRetroPromptEnabled
+    {
+        get => GetValue<bool>("IsRetroPromptEnabled", false);
+        set => SetValue("IsRetroPromptEnabled", value);
+    }
+
     public SettingsService()
     {
         LoadAsync().GetAwaiter().GetResult();
