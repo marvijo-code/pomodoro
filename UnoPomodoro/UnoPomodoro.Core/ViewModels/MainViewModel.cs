@@ -381,6 +381,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsSoundEnabledChanged(bool value)
     {
         _ = PersistSettingAsync(() => _settingsService.IsSoundEnabled = value);
+        _timerService.UpdateAlarmSettings(value, IsVibrationEnabled);
     }
 
     partial void OnSoundVolumeChanged(double value)
@@ -406,6 +407,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsVibrationEnabledChanged(bool value)
     {
         _ = PersistSettingAsync(() => _settingsService.IsVibrationEnabled = value);
+        _timerService.UpdateAlarmSettings(IsSoundEnabled, value);
     }
 
     // -- Notification --
@@ -563,15 +565,24 @@ public partial class MainViewModel : ObservableObject
         IsRunning = false;
         bool wasPomodoro = Mode == "pomodoro";
 
+        // Sound and vibration may have already been started by the platform's
+        // background service (which runs on a background thread and works even
+        // when the phone is locked). Only start them here if the platform
+        // didn't handle it, to avoid double-triggering.
+        bool alarmAlreadyStarted = _timerService.CompletionAlarmStartedByPlatform;
+
         // Sound notification (repeating until dismissed)
+        if (IsSoundEnabled && !alarmAlreadyStarted)
+        {
+            _soundService?.PlayNotificationSound();
+        }
         if (IsSoundEnabled)
         {
             IsRinging = true;
-            _soundService?.PlayNotificationSound();
         }
 
         // Vibration notification (repeating until dismissed)
-        if (IsVibrationEnabled && _vibrationService.IsSupported)
+        if (IsVibrationEnabled && _vibrationService.IsSupported && !alarmAlreadyStarted)
         {
             _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
         }

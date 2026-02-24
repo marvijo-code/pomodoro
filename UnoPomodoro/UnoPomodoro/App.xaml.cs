@@ -62,6 +62,12 @@ public partial class App : Application
         // Create MainViewModel with required services
         var mainViewModel = new MainViewModel(timerService, sessionRepository, taskRepository, soundService, notificationService, statisticsService, vibrationService, settingsService);
 
+        // Register alarm services with the timer so the platform's background service
+        // can trigger vibration and sound directly (works even when the phone is locked).
+        timerService.RegisterAlarmServices(
+            soundService, vibrationService,
+            settingsService.IsSoundEnabled, settingsService.IsVibrationEnabled);
+
         // Do not repeat app initialization when the Window already has content,
         // just ensure that the window is active
         if (MainWindow.Content is not Frame rootFrame)

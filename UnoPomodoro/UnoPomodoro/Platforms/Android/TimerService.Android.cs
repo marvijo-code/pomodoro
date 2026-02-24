@@ -44,5 +44,20 @@ namespace UnoPomodoro.Services
                 System.Diagnostics.Debug.WriteLine($"Error updating notification: {ex.Message}");
             }
         }
+        
+        partial void RegisterAlarmServicesPlatform(
+            ISoundService? soundService,
+            IVibrationService? vibrationService,
+            bool soundEnabled,
+            bool vibrationEnabled)
+        {
+            TimerForegroundService.RegisterAlarmServices(
+                soundService, vibrationService, soundEnabled, vibrationEnabled);
+        }
+        
+        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled)
+        {
+            TimerForegroundService.UpdateAlarmSettings(soundEnabled, vibrationEnabled);
+        }
     }
 }

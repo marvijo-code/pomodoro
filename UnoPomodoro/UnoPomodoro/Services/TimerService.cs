@@ -157,5 +157,38 @@ namespace UnoPomodoro.Services
         partial void StartPlatformBackgroundService();
         partial void StopPlatformBackgroundService();
         partial void UpdatePlatformNotification(int remainingSeconds);
+        
+        public bool CompletionAlarmStartedByPlatform
+        {
+            get
+            {
+#if __ANDROID__
+                return UnoPomodoro.Platforms.Android.TimerForegroundService.CompletionAlarmStarted;
+#else
+                return false;
+#endif
+            }
+        }
+        
+        public void RegisterAlarmServices(
+            ISoundService? soundService,
+            IVibrationService? vibrationService,
+            bool soundEnabled,
+            bool vibrationEnabled)
+        {
+            RegisterAlarmServicesPlatform(soundService, vibrationService, soundEnabled, vibrationEnabled);
+        }
+        
+        public void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled)
+        {
+            UpdateAlarmSettingsPlatform(soundEnabled, vibrationEnabled);
+        }
+        
+        partial void RegisterAlarmServicesPlatform(
+            ISoundService? soundService,
+            IVibrationService? vibrationService,
+            bool soundEnabled,
+            bool vibrationEnabled);
+        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled);
     }
 }

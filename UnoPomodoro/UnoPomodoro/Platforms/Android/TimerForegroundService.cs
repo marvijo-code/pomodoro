@@ -3,6 +3,7 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Core.App;
+using UnoPomodoro.Services;
 
 namespace UnoPomodoro.Platforms.Android
 {
@@ -25,7 +26,45 @@ namespace UnoPomodoro.Platforms.Android
         private int _totalSeconds = 25 * 60;
         private bool _completionFired;
         
+        // Services for triggering vibration/sound directly from the service thread,
+        // bypassing the UI dispatcher which is suspended when the phone is locked.
+        private static IVibrationService? _vibrationService;
+        private static ISoundService? _soundService;
+        private static bool _soundEnabled;
+        private static bool _vibrationEnabled;
+        
+        /// <summary>
+        /// Whether the completion alarm (sound + vibration) was started by this service.
+        /// The ViewModel checks this to avoid double-triggering when the UI resumes.
+        /// </summary>
+        public static bool CompletionAlarmStarted { get; private set; }
+        
         public static TimerForegroundService? Instance => _instance;
+        
+        /// <summary>
+        /// Registers the sound and vibration services so the foreground service can
+        /// trigger them directly when the timer completes (even on the lock screen).
+        /// </summary>
+        public static void RegisterAlarmServices(
+            ISoundService? soundService,
+            IVibrationService? vibrationService,
+            bool soundEnabled,
+            bool vibrationEnabled)
+        {
+            _soundService = soundService;
+            _vibrationService = vibrationService;
+            _soundEnabled = soundEnabled;
+            _vibrationEnabled = vibrationEnabled;
+        }
+        
+        /// <summary>
+        /// Updates the enabled state of sound/vibration (called when settings change).
+        /// </summary>
+        public static void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled)
+        {
+            _soundEnabled = soundEnabled;
+            _vibrationEnabled = vibrationEnabled;
+        }
 
         public override IBinder? OnBind(Intent? intent)
         {
@@ -196,8 +235,9 @@ namespace UnoPomodoro.Platforms.Android
         }
         
         /// <summary>
-        /// Posts a high-priority completion notification with full-screen intent.
-        /// This fires even when the phone is locked, waking the screen.
+        /// Posts a high-priority completion notification with full-screen intent,
+        /// and directly triggers vibration and sound from the service thread.
+        /// This fires even when the phone is locked, bypassing the UI dispatcher.
         /// </summary>
         private void ShowCompletionNotification()
         {
@@ -236,11 +276,46 @@ namespace UnoPomodoro.Platforms.Android
                 var notificationManager = GetSystemService(NotificationService) as NotificationManager;
                 notificationManager?.Notify(CompletionNotificationId, notification);
                 
+                // Directly trigger repeating vibration and alarm sound from the
+                // service thread. This is the key fix: these calls do NOT require
+                // the UI dispatcher, so they work even when the phone is locked.
+                StartCompletionAlarm();
+                
                 System.Diagnostics.Debug.WriteLine($"Completion notification posted: {title}");
             }
             catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error showing completion notification: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Starts the repeating vibration and alarm sound directly from the service thread.
+        /// Called when the timer hits zero, regardless of whether the UI is active.
+        /// </summary>
+        private void StartCompletionAlarm()
+        {
+            CompletionAlarmStarted = false;
+            
+            try
+            {
+                if (_vibrationEnabled && _vibrationService != null && _vibrationService.IsSupported)
+                {
+                    _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
+                    CompletionAlarmStarted = true;
+                    System.Diagnostics.Debug.WriteLine("Completion vibration started from foreground service");
+                }
+                
+                if (_soundEnabled && _soundService != null)
+                {
+                    _soundService.PlayNotificationSound();
+                    CompletionAlarmStarted = true;
+                    System.Diagnostics.Debug.WriteLine("Completion sound started from foreground service");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting completion alarm: {ex.Message}");
             }
         }
         
@@ -299,6 +374,7 @@ namespace UnoPomodoro.Platforms.Android
         public override void OnDestroy()
         {
             ReleaseWakeLock();
+            CompletionAlarmStarted = false;
             _instance = null;
             base.OnDestroy();
 
