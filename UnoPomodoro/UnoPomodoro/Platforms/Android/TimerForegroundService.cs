@@ -332,6 +332,7 @@ namespace UnoPomodoro.Platforms.Android
             try
             {
                 _vibrationCancellationTokenSource?.Cancel();
+                _vibrationCancellationTokenSource?.Dispose();
                 _vibrationCancellationTokenSource = new CancellationTokenSource();
                 var token = _vibrationCancellationTokenSource.Token;
                 await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, _vibrationDurationSeconds)), token);
@@ -402,6 +403,7 @@ namespace UnoPomodoro.Platforms.Android
         public override void OnDestroy()
         {
             _vibrationCancellationTokenSource?.Cancel();
+            _vibrationCancellationTokenSource?.Dispose();
             _vibrationCancellationTokenSource = null;
             ReleaseWakeLock();
             CompletionAlarmStarted = false;

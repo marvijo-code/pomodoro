@@ -1179,6 +1179,7 @@ public partial class MainViewModel : ObservableObject
     private void StopAlarm()
     {
         _vibrationCancellationTokenSource?.Cancel();
+        _vibrationCancellationTokenSource?.Dispose();
         _vibrationCancellationTokenSource = null;
         IsRinging = false;
         _soundService?.StopNotificationSound();
@@ -1190,6 +1191,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             _vibrationCancellationTokenSource?.Cancel();
+            _vibrationCancellationTokenSource?.Dispose();
             _vibrationCancellationTokenSource = new CancellationTokenSource();
             var token = _vibrationCancellationTokenSource.Token;
             await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, VibrationDuration)), token);
