@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Uno.Resizetizer;
 using UnoPomodoro.Services;
@@ -11,6 +14,7 @@ namespace UnoPomodoro;
 
 public partial class App : Application
 {
+    private static readonly HttpClient UpdateHttpClient = new();
     public static App? Instance => Current as App;
 
     /// <summary>
@@ -91,6 +95,8 @@ public partial class App : Application
 
         // Ensure the current window is active
         MainWindow.Activate();
+
+        _ = CheckForAppUpdatesAsync(mainViewModel);
     }
 
     /// <summary>
@@ -170,6 +176,61 @@ public partial class App : Application
 #if HAS_UNO
         global::Uno.UI.Adapter.Microsoft.Extensions.Logging.LoggingAdapter.Initialize();
 #endif
+#endif
+    }
+
+    private async Task CheckForAppUpdatesAsync(MainViewModel mainViewModel)
+    {
+        try
+        {
+            if (!UpdateHttpClient.DefaultRequestHeaders.UserAgent.Any())
+            {
+                UpdateHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PomodoroVijoApp/1.0");
+            }
+
+            var response = await UpdateHttpClient.GetStringAsync("https://api.github.com/repos/marvijo-code/pomodoro/releases/latest");
+            using var document = JsonDocument.Parse(response);
+
+            var tagName = document.RootElement.GetProperty("tag_name").GetString();
+            var releaseUrl = document.RootElement.GetProperty("html_url").GetString();
+            if (string.IsNullOrWhiteSpace(tagName) || string.IsNullOrWhiteSpace(releaseUrl))
+            {
+                return;
+            }
+
+            var currentVersion = GetCurrentVersion();
+            if (string.IsNullOrWhiteSpace(currentVersion) || !AppUpdateVersionComparer.IsNewerVersion(tagName, currentVersion))
+            {
+                return;
+            }
+
+            _ = MainWindow?.DispatcherQueue.TryEnqueue(() =>
+            {
+                mainViewModel.UpdateTitle = "Update available";
+                mainViewModel.UpdateMessage = $"A newer version ({tagName}) is available. You are on {currentVersion}.";
+                mainViewModel.UpdateUrl = releaseUrl;
+                mainViewModel.ShowUpdateDialog = true;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Update check skipped: {ex.Message}");
+        }
+    }
+
+    private static string GetCurrentVersion()
+    {
+#if __ANDROID__
+        var context = Android.App.Application.Context;
+        if (context?.PackageManager == null)
+        {
+            return string.Empty;
+        }
+
+        var packageInfo = context.PackageManager.GetPackageInfo(context.PackageName!, 0);
+        return packageInfo?.VersionName ?? string.Empty;
+#else
+        return string.Empty;
 #endif
     }
 }

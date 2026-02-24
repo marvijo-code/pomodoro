@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Windows.System;
 using UnoPomodoro.ViewModels;
 
 namespace UnoPomodoro;
@@ -62,6 +63,23 @@ public sealed partial class MainPage : Page
             if (value != null)
             {
                 SetViewModel(value);
+            }
+        }
+    }
+
+    private async void UpdateNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null || string.IsNullOrWhiteSpace(_viewModel.UpdateUrl))
+        {
+            return;
+        }
+
+        if (Uri.TryCreate(_viewModel.UpdateUrl, UriKind.Absolute, out var uri))
+        {
+            var launched = await Launcher.LaunchUriAsync(uri);
+            if (launched)
+            {
+                _viewModel.ShowUpdateDialog = false;
             }
         }
     }
