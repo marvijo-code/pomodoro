@@ -63,6 +63,18 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _nextActionLabel = "";
 
+    [ObservableProperty]
+    private bool _showUpdateDialog;
+
+    [ObservableProperty]
+    private string _updateTitle = "";
+
+    [ObservableProperty]
+    private string _updateMessage = "";
+
+    [ObservableProperty]
+    private string _updateUrl = "";
+
     private string _pendingNextMode = "shortBreak";
     private bool _completionHandled;
 
@@ -810,6 +822,12 @@ public partial class MainViewModel : ObservableObject
         {
             ToggleTimer();
         }
+    }
+
+    [RelayCommand]
+    private void DismissUpdateDialog()
+    {
+        ShowUpdateDialog = false;
     }
 
     private async Task AutoAdvanceSession()

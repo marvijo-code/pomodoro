@@ -166,11 +166,37 @@ jobs:
 
         exit 0
 
+    - name: Prepare Android signing keystore
+      id: signing
+      shell: pwsh
+      env:
+        ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      run: |
+        if ([string]::IsNullOrWhiteSpace($env:ANDROID_KEYSTORE_BASE64) -or
+            [string]::IsNullOrWhiteSpace($env:ANDROID_KEYSTORE_PASSWORD) -or
+            [string]::IsNullOrWhiteSpace($env:ANDROID_KEY_ALIAS) -or
+            [string]::IsNullOrWhiteSpace($env:ANDROID_KEY_PASSWORD)) {
+          throw "Android signing secrets are required for stable updatable release APKs."
+        }
+
+        $keystorePath = Join-Path $env:RUNNER_TEMP "release-signing.keystore"
+        [IO.File]::WriteAllBytes($keystorePath, [Convert]::FromBase64String($env:ANDROID_KEYSTORE_BASE64))
+
+        "KEYSTORE_PATH=$keystorePath" >> $env:GITHUB_OUTPUT
+
     - name: Build Release APK (versioned)
       run: >
         dotnet build UnoPomodoro/UnoPomodoro/UnoPomodoro.csproj -c Release -f net10.0-android
         -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
         -p:ApplicationVersion=${{ steps.version.outputs.VERSION_CODE }}
+        -p:AndroidKeyStore=true
+        -p:AndroidSigningKeyStore=${{ steps.signing.outputs.KEYSTORE_PATH }}
+        -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+        -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }}
 
     - name: Find APK
       id: find_apk
