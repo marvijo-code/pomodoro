@@ -39,6 +39,7 @@ public class MainViewModelTests
         _mockSettingsService.Object.IsSoundEnabled = true;
         _mockSettingsService.Object.SoundVolume = 100;
         _mockSettingsService.Object.SoundDuration = 5;
+        _mockSettingsService.Object.VibrationDuration = 5;
         _mockSettingsService.Object.PomodoroDuration = 25;
         _mockSettingsService.Object.ShortBreakDuration = 5;
         _mockSettingsService.Object.LongBreakDuration = 15;
@@ -424,6 +425,23 @@ public class MainViewModelTests
         // Assert - repeat=true so alarm vibrates until user dismisses completion dialog
         _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), true), Times.Once);
     }
+    
+    [Fact]
+    public async Task TimerCompleted_WithVibrationEnabled_ShouldAutoStopVibrationAfterDuration()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsVibrationEnabled = true;
+        _viewModel.VibrationDuration = 1;
+        _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+        await Task.Delay(1200);
+
+        // Assert
+        _mockVibrationService.Verify(x => x.Cancel(), Times.AtLeastOnce);
+    }
 
     [Fact]
     public void TimerCompleted_WithVibrationDisabled_ShouldNotVibrate()
@@ -665,6 +683,17 @@ public class MainViewModelTests
 
         // Assert
         _mockSettingsService.VerifySet(x => x.IsVibrationEnabled = true, Times.Once);
+        _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
+    }
+    
+    [Fact]
+    public void ChangingVibrationDuration_ShouldPersistSetting()
+    {
+        // Act
+        _viewModel.VibrationDuration = 7;
+
+        // Assert
+        _mockSettingsService.VerifySet(x => x.VibrationDuration = 7, Times.Once);
         _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
     }
 

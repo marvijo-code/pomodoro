@@ -1052,6 +1052,21 @@
                                 OnContent=""
                                 OffContent=""/>
                 </Grid>
+                
+                <StackPanel Spacing="4" Visibility="{Binding IsVibrationEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                  <Grid>
+                    <TextBlock Text="Duration (seconds)"
+                               FontSize="12"
+                               Foreground="{StaticResource OnSurfaceVariantColor}" />
+                    <TextBlock Text="{Binding VibrationDuration}"
+                               FontSize="12"
+                               HorizontalAlignment="Right"
+                               Foreground="{StaticResource OnSurfaceVariantColor}" />
+                  </Grid>
+                  <Slider Value="{Binding VibrationDuration, Mode=TwoWay}"
+                          Minimum="1"
+                          Maximum="30" />
+                </StackPanel>
               </StackPanel>
             </Border>
 

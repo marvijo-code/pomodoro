@@ -3,6 +3,8 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Core.App;
+using System.Threading;
+using System.Threading.Tasks;
 using UnoPomodoro.Services;
 
 namespace UnoPomodoro.Platforms.Android
@@ -32,6 +34,8 @@ namespace UnoPomodoro.Platforms.Android
         private static ISoundService? _soundService;
         private static bool _soundEnabled;
         private static bool _vibrationEnabled;
+        private static int _vibrationDurationSeconds = 5;
+        private static CancellationTokenSource? _vibrationCancellationTokenSource;
         
         /// <summary>
         /// Whether the completion alarm (sound + vibration) was started by this service.
@@ -49,21 +53,24 @@ namespace UnoPomodoro.Platforms.Android
             ISoundService? soundService,
             IVibrationService? vibrationService,
             bool soundEnabled,
-            bool vibrationEnabled)
+            bool vibrationEnabled,
+            int vibrationDurationSeconds = 5)
         {
             _soundService = soundService;
             _vibrationService = vibrationService;
             _soundEnabled = soundEnabled;
             _vibrationEnabled = vibrationEnabled;
+            _vibrationDurationSeconds = Math.Max(1, vibrationDurationSeconds);
         }
         
         /// <summary>
         /// Updates the enabled state of sound/vibration (called when settings change).
         /// </summary>
-        public static void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled)
+        public static void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds = 5)
         {
             _soundEnabled = soundEnabled;
             _vibrationEnabled = vibrationEnabled;
+            _vibrationDurationSeconds = Math.Max(1, vibrationDurationSeconds);
         }
 
         public override IBinder? OnBind(Intent? intent)
@@ -302,6 +309,7 @@ namespace UnoPomodoro.Platforms.Android
                 if (_vibrationEnabled && _vibrationService != null && _vibrationService.IsSupported)
                 {
                     _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
+                    _ = StopVibrationAfterDurationAsync();
                     CompletionAlarmStarted = true;
                     System.Diagnostics.Debug.WriteLine("Completion vibration started from foreground service");
                 }
@@ -316,6 +324,26 @@ namespace UnoPomodoro.Platforms.Android
             catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error starting completion alarm: {ex.Message}");
+            }
+        }
+        
+        private static async Task StopVibrationAfterDurationAsync()
+        {
+            try
+            {
+                _vibrationCancellationTokenSource?.Cancel();
+                _vibrationCancellationTokenSource = new CancellationTokenSource();
+                var token = _vibrationCancellationTokenSource.Token;
+                await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, _vibrationDurationSeconds)), token);
+                _vibrationService?.Cancel();
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancellation when user manually stops the alarm.
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping vibration after duration: {ex.Message}");
             }
         }
         
@@ -373,6 +401,8 @@ namespace UnoPomodoro.Platforms.Android
         
         public override void OnDestroy()
         {
+            _vibrationCancellationTokenSource?.Cancel();
+            _vibrationCancellationTokenSource = null;
             ReleaseWakeLock();
             CompletionAlarmStarted = false;
             _instance = null;

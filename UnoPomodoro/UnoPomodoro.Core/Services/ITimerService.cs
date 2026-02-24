@@ -46,11 +46,12 @@ public interface ITimerService
         ISoundService? soundService,
         IVibrationService? vibrationService,
         bool soundEnabled,
-        bool vibrationEnabled);
+        bool vibrationEnabled,
+        int vibrationDurationSeconds = 5);
     
     /// <summary>
     /// Updates the platform background service with the current alarm settings.
     /// No-op on platforms without a background service.
     /// </summary>
-    void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled);
+    void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds = 5);
 }
