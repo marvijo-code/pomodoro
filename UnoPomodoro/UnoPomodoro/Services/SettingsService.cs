@@ -37,6 +37,12 @@ public class SettingsService : ISettingsService
         get => GetValue<bool>("IsVibrationEnabled", true);
         set => SetValue("IsVibrationEnabled", value);
     }
+    
+    public int VibrationDuration
+    {
+        get => GetValue<int>("VibrationDuration", 5);
+        set => SetValue("VibrationDuration", value);
+    }
 
     // Timer settings
     public int PomodoroDuration

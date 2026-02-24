@@ -42,6 +42,7 @@ public class LockScreenAlarmTests
         _mockSettingsService.Object.IsSoundEnabled = true;
         _mockSettingsService.Object.SoundVolume = 100;
         _mockSettingsService.Object.SoundDuration = 5;
+        _mockSettingsService.Object.VibrationDuration = 5;
         _mockSettingsService.Object.PomodoroDuration = 25;
         _mockSettingsService.Object.ShortBreakDuration = 5;
         _mockSettingsService.Object.LongBreakDuration = 15;
@@ -127,6 +128,30 @@ public class LockScreenAlarmTests
         _viewModel.ShowCompletionDialog.Should().BeTrue();
         _viewModel.CompletionTitle.Should().Be("Pomodoro Completed!");
     }
+    
+    [Fact]
+    public async Task Constructor_WhenPlatformAlarmAlreadyActive_ShouldShowCompletionDialog()
+    {
+        // Arrange
+        _mockTimerService.Setup(x => x.CompletionAlarmStartedByPlatform).Returns(true);
+
+        var viewModel = new MainViewModel(
+            _mockTimerService.Object,
+            _mockSessionRepository.Object,
+            _mockTaskRepository.Object,
+            _mockSoundService.Object,
+            _mockNotificationService.Object,
+            _mockStatisticsService.Object,
+            _mockVibrationService.Object,
+            _mockSettingsService.Object);
+
+        // Act
+        await Task.Delay(100);
+
+        // Assert
+        viewModel.ShowCompletionDialog.Should().BeTrue();
+        viewModel.CompletionTitle.Should().Be("Session Completed!");
+    }
 
     // ── Platform did NOT start alarm (normal foreground scenario) ─
 
@@ -191,7 +216,7 @@ public class LockScreenAlarmTests
 
         // Assert - should propagate the new sound setting + current vibration setting
         _mockTimerService.Verify(
-            x => x.UpdateAlarmSettings(false, true),
+            x => x.UpdateAlarmSettings(false, true, It.IsAny<int>()),
             Times.AtLeastOnce);
     }
 
@@ -206,7 +231,7 @@ public class LockScreenAlarmTests
 
         // Assert - should propagate current sound setting + new vibration setting
         _mockTimerService.Verify(
-            x => x.UpdateAlarmSettings(true, true),
+            x => x.UpdateAlarmSettings(true, true, It.IsAny<int>()),
             Times.AtLeastOnce);
     }
 
@@ -221,7 +246,7 @@ public class LockScreenAlarmTests
 
         // Assert
         _mockTimerService.Verify(
-            x => x.UpdateAlarmSettings(false, false),
+            x => x.UpdateAlarmSettings(false, false, It.IsAny<int>()),
             Times.AtLeastOnce);
     }
 

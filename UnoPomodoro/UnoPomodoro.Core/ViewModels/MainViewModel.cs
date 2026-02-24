@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
@@ -65,6 +66,7 @@ public partial class MainViewModel : ObservableObject
 
     private string _pendingNextMode = "shortBreak";
     private bool _completionHandled;
+    private CancellationTokenSource? _vibrationCancellationTokenSource;
 
     // ── Task management ──────────────────────────────────────────
 
@@ -108,6 +110,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isVibrationEnabled;
+    
+    [ObservableProperty]
+    private int _vibrationDuration = 5;
 
     // ── Notification settings ────────────────────────────────────
 
@@ -385,6 +390,15 @@ public partial class MainViewModel : ObservableObject
         // Initialize sound service from settings
         _soundService.Volume = SoundVolume / 100.0;
         _soundService.Duration = SoundDuration;
+        
+        if (_timerService.CompletionAlarmStartedByPlatform && !ShowCompletionDialog)
+        {
+            CompletionTitle = "Session Completed!";
+            CompletionMessage = "Tap dismiss to stop the alarm and continue.";
+            NextActionLabel = "Continue";
+            IsRinging = IsSoundEnabled || IsVibrationEnabled;
+            ShowCompletionDialog = true;
+        }
 
         // Load dashboard stats
         await LoadDashboardStatsAsync();
@@ -400,6 +414,7 @@ public partial class MainViewModel : ObservableObject
         SoundVolume = _settingsService.SoundVolume;
         SoundDuration = _settingsService.SoundDuration;
         IsVibrationEnabled = _settingsService.IsVibrationEnabled;
+        VibrationDuration = _settingsService.VibrationDuration;
         PomodoroDuration = _settingsService.PomodoroDuration;
         ShortBreakDuration = _settingsService.ShortBreakDuration;
         LongBreakDuration = _settingsService.LongBreakDuration;
@@ -460,7 +475,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsSoundEnabledChanged(bool value)
     {
         _ = PersistSettingAsync(() => _settingsService.IsSoundEnabled = value);
-        _timerService.UpdateAlarmSettings(value, IsVibrationEnabled);
+        _timerService.UpdateAlarmSettings(value, IsVibrationEnabled, VibrationDuration);
     }
 
     partial void OnSoundVolumeChanged(double value)
@@ -486,7 +501,19 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsVibrationEnabledChanged(bool value)
     {
         _ = PersistSettingAsync(() => _settingsService.IsVibrationEnabled = value);
-        _timerService.UpdateAlarmSettings(IsSoundEnabled, value);
+        _timerService.UpdateAlarmSettings(IsSoundEnabled, value, VibrationDuration);
+    }
+    
+    partial void OnVibrationDurationChanged(int value)
+    {
+        var duration = Math.Max(1, value);
+        if (duration != value)
+        {
+            VibrationDuration = duration;
+            return;
+        }
+        _ = PersistSettingAsync(() => _settingsService.VibrationDuration = duration);
+        _timerService.UpdateAlarmSettings(IsSoundEnabled, IsVibrationEnabled, duration);
     }
 
     // -- Notification --
@@ -702,6 +729,7 @@ public partial class MainViewModel : ObservableObject
         if (IsVibrationEnabled && _vibrationService.IsSupported && !alarmAlreadyStarted)
         {
             _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
+            _ = StopVibrationAfterDurationAsync();
         }
 
         // Track pomodoro completions for long-break logic
@@ -1150,9 +1178,29 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void StopAlarm()
     {
+        _vibrationCancellationTokenSource?.Cancel();
+        _vibrationCancellationTokenSource?.Dispose();
+        _vibrationCancellationTokenSource = null;
         IsRinging = false;
         _soundService?.StopNotificationSound();
         _vibrationService?.Cancel();
+    }
+    
+    private async Task StopVibrationAfterDurationAsync()
+    {
+        try
+        {
+            _vibrationCancellationTokenSource?.Cancel();
+            _vibrationCancellationTokenSource?.Dispose();
+            _vibrationCancellationTokenSource = new CancellationTokenSource();
+            var token = _vibrationCancellationTokenSource.Token;
+            await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, VibrationDuration)), token);
+            _vibrationService?.Cancel();
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignore cancellation when user manually dismisses alarm.
+        }
     }
 
     [RelayCommand]

@@ -66,7 +66,7 @@ public partial class App : Application
         // can trigger vibration and sound directly (works even when the phone is locked).
         timerService.RegisterAlarmServices(
             soundService, vibrationService,
-            settingsService.IsSoundEnabled, settingsService.IsVibrationEnabled);
+            settingsService.IsSoundEnabled, settingsService.IsVibrationEnabled, settingsService.VibrationDuration);
 
         // Do not repeat app initialization when the Window already has content,
         // just ensure that the window is active

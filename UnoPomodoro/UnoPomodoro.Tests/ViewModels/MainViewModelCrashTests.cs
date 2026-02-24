@@ -38,6 +38,7 @@ public class MainViewModelCrashTests
         _mockSettingsService.Object.IsSoundEnabled = true;
         _mockSettingsService.Object.SoundVolume = 100;
         _mockSettingsService.Object.SoundDuration = 5;
+        _mockSettingsService.Object.VibrationDuration = 5;
         _mockSettingsService.Object.PomodoroDuration = 25;
         _mockSettingsService.Object.ShortBreakDuration = 5;
         _mockSettingsService.Object.LongBreakDuration = 15;

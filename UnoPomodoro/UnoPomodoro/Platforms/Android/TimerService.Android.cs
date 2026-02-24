@@ -49,15 +49,16 @@ namespace UnoPomodoro.Services
             ISoundService? soundService,
             IVibrationService? vibrationService,
             bool soundEnabled,
-            bool vibrationEnabled)
+            bool vibrationEnabled,
+            int vibrationDurationSeconds)
         {
             TimerForegroundService.RegisterAlarmServices(
-                soundService, vibrationService, soundEnabled, vibrationEnabled);
+                soundService, vibrationService, soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
         
-        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled)
+        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds)
         {
-            TimerForegroundService.UpdateAlarmSettings(soundEnabled, vibrationEnabled);
+            TimerForegroundService.UpdateAlarmSettings(soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
     }
 }

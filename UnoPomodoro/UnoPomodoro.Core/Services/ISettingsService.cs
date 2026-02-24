@@ -11,6 +11,7 @@ public interface ISettingsService
 
     // Vibration settings
     bool IsVibrationEnabled { get; set; }
+    int VibrationDuration { get; set; }
 
     // Timer settings
     int PomodoroDuration { get; set; }      // minutes

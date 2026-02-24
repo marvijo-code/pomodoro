@@ -174,21 +174,23 @@ namespace UnoPomodoro.Services
             ISoundService? soundService,
             IVibrationService? vibrationService,
             bool soundEnabled,
-            bool vibrationEnabled)
+            bool vibrationEnabled,
+            int vibrationDurationSeconds = 5)
         {
-            RegisterAlarmServicesPlatform(soundService, vibrationService, soundEnabled, vibrationEnabled);
+            RegisterAlarmServicesPlatform(soundService, vibrationService, soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
         
-        public void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled)
+        public void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds = 5)
         {
-            UpdateAlarmSettingsPlatform(soundEnabled, vibrationEnabled);
+            UpdateAlarmSettingsPlatform(soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
         
         partial void RegisterAlarmServicesPlatform(
             ISoundService? soundService,
             IVibrationService? vibrationService,
             bool soundEnabled,
-            bool vibrationEnabled);
-        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled);
+            bool vibrationEnabled,
+            int vibrationDurationSeconds);
+        partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds);
     }
 }
