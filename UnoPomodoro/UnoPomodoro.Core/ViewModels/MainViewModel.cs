@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
@@ -79,6 +80,16 @@ public partial class MainViewModel : ObservableObject
     private string _pendingNextMode = "shortBreak";
     private bool _completionHandled;
     private CancellationTokenSource? _vibrationCancellationTokenSource;
+    private System.Threading.CancellationTokenSource? _vibrationAutoStopCts;
+    private System.Threading.CancellationTokenSource? _undismissedCompletionReminderCts;
+    private static readonly TimeSpan UndismissedReminderInitialDelay = TimeSpan.FromHours(1);
+    private static readonly TimeSpan UndismissedReminderInterval = TimeSpan.FromMinutes(5);
+
+    [ObservableProperty]
+    private bool _showUndismissedReminderPopup;
+
+    [ObservableProperty]
+    private string _undismissedReminderMessage = "Pomodoro completed more than an hour ago. Please dismiss it.";
 
     // ── Task management ──────────────────────────────────────────
 
@@ -86,6 +97,43 @@ public partial class MainViewModel : ObservableObject
     private string _newTask = "";
 
     public ObservableCollection<TaskItem> Tasks { get; } = new();
+    public ObservableCollection<TaskItem> TaskHistoryTasks { get; } = new();
+
+    [ObservableProperty]
+    private bool _showAllTaskDays = true;
+
+    [ObservableProperty]
+    private DateTimeOffset _taskHistoryDate = DateTimeOffset.Now.Date;
+
+    // ── Coffee tracking ──────────────────────────────────────────
+
+    [ObservableProperty]
+    private int _coffeeCount;
+
+    [ObservableProperty]
+    private int _stretchCount;
+
+    // ── Utility timers ───────────────────────────────────────────
+
+    [ObservableProperty]
+    private string _currentTimeText = DateTime.Now.ToString("HH:mm:ss");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StopwatchDisplay))]
+    private int _stopwatchSeconds;
+
+    [ObservableProperty]
+    private bool _isStopwatchRunning;
+
+    [ObservableProperty]
+    private int _countdownDurationMinutes = 10;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CountdownDisplay))]
+    private int _countdownRemainingSeconds = 10 * 60;
+
+    [ObservableProperty]
+    private bool _isCountdownRunning;
 
     // ── Session history ──────────────────────────────────────────
 
@@ -275,6 +323,19 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _showEditGoals = false;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStopwatchToolVisible))]
+    [NotifyPropertyChangedFor(nameof(IsCountdownToolVisible))]
+    private bool _showExtraToolPanel;
+
+    [ObservableProperty]
+    private bool _showExtraToolPicker;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStopwatchToolVisible))]
+    [NotifyPropertyChangedFor(nameof(IsCountdownToolVisible))]
+    private string _activeExtraTool = "";
+
     // ── Dashboard inline stats ───────────────────────────────────
 
     [ObservableProperty]
@@ -341,10 +402,20 @@ public partial class MainViewModel : ObservableObject
         { "longBreak", 15 * 60 }
     };
     private readonly List<string> _pendingCarryOverTaskTexts = new();
+    private readonly Dictionary<string, int> _dailyCoffeeCounts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _dailyStretchCounts = new(StringComparer.Ordinal);
     private bool _midpointReminderTriggered;
     private bool _lastMinuteAlertTriggered;
+    private string _activeCountsDateKey = DateTime.Now.ToString("yyyy-MM-dd");
+    private System.Threading.CancellationTokenSource? _clockCts;
+    private System.Threading.CancellationTokenSource? _stopwatchCts;
+    private System.Threading.CancellationTokenSource? _countdownCts;
 
     public int TotalDuration => _times.TryGetValue(Mode, out var duration) ? duration : 25 * 60;
+    public string StopwatchDisplay => FormatTime(StopwatchSeconds);
+    public string CountdownDisplay => FormatTime(Math.Max(0, CountdownRemainingSeconds));
+    public bool IsStopwatchToolVisible => ShowExtraToolPanel && ActiveExtraTool == "stopwatch";
+    public bool IsCountdownToolVisible => ShowExtraToolPanel && ActiveExtraTool == "countdown";
 
     public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
     public string SessionGoalProgressText =>
@@ -402,7 +473,11 @@ public partial class MainViewModel : ObservableObject
         // Initialize sound service from settings
         _soundService.Volume = SoundVolume / 100.0;
         _soundService.Duration = SoundDuration;
-        
+        CountdownRemainingSeconds = Math.Max(1, CountdownDurationMinutes) * 60;
+
+        StartClockTicker();
+        await LoadTaskHistoryAsync();
+
         if (_timerService.CompletionAlarmStartedByPlatform && !ShowCompletionDialog)
         {
             CompletionTitle = "Session Completed!";
@@ -447,14 +522,97 @@ public partial class MainViewModel : ObservableObject
         DailyGoal = _settingsService.DailyGoal;
         WeeklyGoal = _settingsService.WeeklyGoal;
         MonthlyGoal = _settingsService.MonthlyGoal;
+        ShowAllTaskDays = _settingsService.ShowAllTaskDays;
         IsStreakProtectionEnabled = _settingsService.IsStreakProtectionEnabled;
         DailyFocusQuotaMinutes = _settingsService.DailyFocusQuotaMinutes;
         DefaultTaskPriority = _settingsService.DefaultTaskPriority;
         IsBreakSuggestionsEnabled = _settingsService.IsBreakSuggestionsEnabled;
         IsRetroPromptEnabled = _settingsService.IsRetroPromptEnabled;
+        LoadDailyWellnessCountsFromSettings();
 
         // Initialize built-in templates
         InitializeDefaultTemplates();
+    }
+
+    private void LoadDailyWellnessCountsFromSettings()
+    {
+        _dailyCoffeeCounts.Clear();
+        _dailyStretchCounts.Clear();
+
+        MergeDailyCounts(_dailyCoffeeCounts, _settingsService.DailyCoffeeCountsJson);
+        MergeDailyCounts(_dailyStretchCounts, _settingsService.DailyStretchCountsJson);
+
+        var todayKey = BuildDayKey(DateTime.Now);
+        _activeCountsDateKey = todayKey;
+
+        // Backfill from legacy single counter if present.
+        if (_dailyCoffeeCounts.Count == 0 && _settingsService.CoffeeCount > 0)
+        {
+            _dailyCoffeeCounts[todayKey] = Math.Max(0, _settingsService.CoffeeCount);
+        }
+
+        CoffeeCount = GetDailyCount(_dailyCoffeeCounts, todayKey);
+        StretchCount = GetDailyCount(_dailyStretchCounts, todayKey);
+    }
+
+    private static void MergeDailyCounts(Dictionary<string, int> target, string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return;
+        }
+
+        try
+        {
+            var data = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+            if (data == null)
+            {
+                return;
+            }
+
+            foreach (var (key, value) in data)
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    target[key] = Math.Max(0, value);
+                }
+            }
+        }
+        catch
+        {
+            // Ignore malformed persisted JSON and continue with empty defaults.
+        }
+    }
+
+    private static string BuildDayKey(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd");
+    }
+
+    private static int GetDailyCount(Dictionary<string, int> map, string dayKey)
+    {
+        return map.TryGetValue(dayKey, out var value) ? Math.Max(0, value) : 0;
+    }
+
+    private async Task PersistDailyWellnessCountsAsync()
+    {
+        _settingsService.CoffeeCount = CoffeeCount;
+        _settingsService.DailyCoffeeCountsJson = JsonSerializer.Serialize(_dailyCoffeeCounts);
+        _settingsService.DailyStretchCountsJson = JsonSerializer.Serialize(_dailyStretchCounts);
+        await _settingsService.SaveAsync();
+    }
+
+    private void EnsureCurrentDayWellnessCounts()
+    {
+        var todayKey = BuildDayKey(DateTime.Now);
+        if (_activeCountsDateKey == todayKey)
+        {
+            return;
+        }
+
+        _activeCountsDateKey = todayKey;
+        CoffeeCount = GetDailyCount(_dailyCoffeeCounts, todayKey);
+        StretchCount = GetDailyCount(_dailyStretchCounts, todayKey);
     }
 
     /// <summary>
@@ -533,6 +691,61 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsNotificationEnabledChanged(bool value)
     {
         _ = PersistSettingAsync(() => _settingsService.IsNotificationEnabled = value);
+    }
+
+    partial void OnCoffeeCountChanged(int value)
+    {
+        var sanitized = Math.Max(0, value);
+        if (sanitized != value)
+        {
+            CoffeeCount = sanitized;
+            return;
+        }
+
+        EnsureCurrentDayWellnessCounts();
+        _dailyCoffeeCounts[_activeCountsDateKey] = sanitized;
+        _ = PersistDailyWellnessCountsAsync();
+    }
+
+    partial void OnStretchCountChanged(int value)
+    {
+        var sanitized = Math.Max(0, value);
+        if (sanitized != value)
+        {
+            StretchCount = sanitized;
+            return;
+        }
+
+        EnsureCurrentDayWellnessCounts();
+        _dailyStretchCounts[_activeCountsDateKey] = sanitized;
+        _ = PersistDailyWellnessCountsAsync();
+    }
+
+    partial void OnShowAllTaskDaysChanged(bool value)
+    {
+        _ = PersistSettingAsync(() => _settingsService.ShowAllTaskDays = value);
+        _ = LoadTaskHistoryAsync();
+    }
+
+    partial void OnTaskHistoryDateChanged(DateTimeOffset value)
+    {
+        _ = LoadTaskHistoryAsync();
+    }
+
+    partial void OnCountdownDurationMinutesChanged(int value)
+    {
+        var sanitized = Math.Clamp(value, 1, 180);
+        if (sanitized != value)
+        {
+            CountdownDurationMinutes = sanitized;
+            return;
+        }
+
+        if (!IsCountdownRunning)
+        {
+            CountdownRemainingSeconds = sanitized * 60;
+            OnPropertyChanged(nameof(CountdownDisplay));
+        }
     }
 
     // -- Timer durations --
@@ -726,19 +939,20 @@ public partial class MainViewModel : ObservableObject
         // when the phone is locked). Only start them here if the platform
         // didn't handle it, to avoid double-triggering.
         bool alarmAlreadyStarted = _timerService.CompletionAlarmStartedByPlatform;
+        bool vibrationSupported = IsVibrationEnabled && _vibrationService.IsSupported;
 
         // Sound notification (repeating until dismissed)
         if (IsSoundEnabled && !alarmAlreadyStarted)
         {
             _soundService?.PlayNotificationSound();
         }
-        if (IsSoundEnabled)
+        if (IsSoundEnabled || vibrationSupported)
         {
             IsRinging = true;
         }
 
         // Vibration notification (repeating until dismissed)
-        if (IsVibrationEnabled && _vibrationService.IsSupported && !alarmAlreadyStarted)
+        if (vibrationSupported && !alarmAlreadyStarted)
         {
             _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
             _ = StopVibrationAfterDurationAsync();
@@ -794,7 +1008,75 @@ public partial class MainViewModel : ObservableObject
         }
 
         // Show the completion dialog
+        ShowUndismissedReminderPopup = false;
         ShowCompletionDialog = true;
+        StartUndismissedCompletionReminderLoop();
+    }
+
+    private void StartUndismissedCompletionReminderLoop()
+    {
+        CancelUndismissedCompletionReminderLoop();
+
+        var tokenSource = new System.Threading.CancellationTokenSource();
+        _undismissedCompletionReminderCts = tokenSource;
+        var token = tokenSource.Token;
+
+        _ = RunUndismissedCompletionReminderLoopAsync(token);
+    }
+
+    private async Task RunUndismissedCompletionReminderLoopAsync(System.Threading.CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(UndismissedReminderInitialDelay, token);
+
+            while (!token.IsCancellationRequested)
+            {
+                if (!ShowCompletionDialog)
+                {
+                    break;
+                }
+
+                ShowUndismissedReminderPopup = true;
+                UndismissedReminderMessage = "Pomodoro is still waiting to be dismissed.";
+
+                if (IsVibrationEnabled && _vibrationService.IsSupported)
+                {
+                    // Two short vibrations every reminder cycle.
+                    _vibrationService.VibratePattern(new long[] { 0, 250, 150, 250 }, false);
+                }
+
+                await Task.Delay(UndismissedReminderInterval, token);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // expected when completion is dismissed
+        }
+    }
+
+    private void CancelUndismissedCompletionReminderLoop()
+    {
+        try
+        {
+            _undismissedCompletionReminderCts?.Cancel();
+        }
+        catch
+        {
+            // no-op
+        }
+        finally
+        {
+            _undismissedCompletionReminderCts?.Dispose();
+            _undismissedCompletionReminderCts = null;
+            ShowUndismissedReminderPopup = false;
+        }
+    }
+
+    [RelayCommand]
+    private void DismissUndismissedReminderPopup()
+    {
+        ShowUndismissedReminderPopup = false;
     }
 
     [RelayCommand]
@@ -802,6 +1084,7 @@ public partial class MainViewModel : ObservableObject
     {
         // Stop alarm (sound + vibration)
         StopAlarm();
+        CancelUndismissedCompletionReminderLoop();
 
         // Dismiss the completion notification from the notification drawer
         _notificationService.DismissCompletionNotification();
@@ -826,6 +1109,7 @@ public partial class MainViewModel : ObservableObject
     {
         // Stop alarm (sound + vibration)
         StopAlarm();
+        CancelUndismissedCompletionReminderLoop();
 
         // Dismiss the completion notification from the notification drawer
         _notificationService.DismissCompletionNotification();
@@ -864,10 +1148,20 @@ public partial class MainViewModel : ObservableObject
         {
             if (CarryIncompleteTasksToNextSession)
             {
+                await LoadTaskHistoryAsync();
+
+                var sourceTasks = ShowAllTaskDays
+                    ? TaskHistoryTasks
+                    : Tasks;
+                if (sourceTasks.Count == 0)
+                {
+                    sourceTasks = Tasks;
+                }
+
                 _pendingCarryOverTaskTexts.Clear();
                 _pendingCarryOverTaskTexts.AddRange(
-                    Tasks
-                        .Where(t => !t.Completed)
+                    sourceTasks
+                        .Where(t => !t.Completed && t.Status != TaskWorkStatus.Done)
                         .Select(t => t.Text?.Trim())
                         .Where(text => !string.IsNullOrWhiteSpace(text))
                         .Select(text => text!)
@@ -1015,6 +1309,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ResetTimer()
     {
+        CancelUndismissedCompletionReminderLoop();
         ResetReminderFlags();
         _timerService.Reset(_times[Mode]);
         TimeLeft = _times[Mode];
@@ -1059,6 +1354,40 @@ public partial class MainViewModel : ObservableObject
         UpdateSessionInfo();
     }
 
+    [RelayCommand]
+    private void AddCoffee()
+    {
+        EnsureCurrentDayWellnessCounts();
+        CoffeeCount++;
+    }
+
+    [RelayCommand]
+    private void ResetCoffeeCount()
+    {
+        EnsureCurrentDayWellnessCounts();
+        CoffeeCount = 0;
+    }
+
+    [RelayCommand]
+    private void AddStretch()
+    {
+        EnsureCurrentDayWellnessCounts();
+        StretchCount++;
+    }
+
+    [RelayCommand]
+    private void ResetStretchCount()
+    {
+        EnsureCurrentDayWellnessCounts();
+        StretchCount = 0;
+    }
+
+    [RelayCommand]
+    private async Task RefreshTaskHistory()
+    {
+        await LoadTaskHistoryAsync();
+    }
+
     // ═════════════════════════════════════════════════════════════
     // Commands — Tasks
     // ═════════════════════════════════════════════════════════════
@@ -1083,6 +1412,7 @@ public partial class MainViewModel : ObservableObject
             UpdateSessionInfo();
         }
         NewTask = "";
+        await LoadTaskHistoryAsync();
     }
 
     [RelayCommand]
@@ -1095,20 +1425,43 @@ public partial class MainViewModel : ObservableObject
             Tasks.Remove(task);
             UpdateSessionInfo();
         }
+        await LoadTaskHistoryAsync();
     }
 
     [RelayCommand]
     private async Task ToggleTask(int taskId)
     {
-        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
-        if (task != null)
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId)
+            ?? TaskHistoryTasks.FirstOrDefault(t => t.Id == taskId)
+            ?? await _taskRepository.GetTaskByIdAsync(taskId);
+        if (task == null)
         {
-            var completed = !task.Completed;
-            await _taskRepository.ToggleCompleted(taskId, completed);
-            task.Completed = completed;
-            task.CompletedAt = completed ? DateTime.Now : (DateTime?)null;
-            UpdateSessionInfo();
+            return;
         }
+
+        var completed = !(task.Completed || task.Status == TaskWorkStatus.Done);
+        var repositoryTask = await _taskRepository.ToggleCompleted(taskId, completed);
+        var effectiveTask = repositoryTask ?? task;
+
+        if (completed)
+        {
+            await StopTaskMonitoringIfRunningAsync(effectiveTask);
+            effectiveTask.Completed = true;
+            effectiveTask.CompletedAt = DateTime.Now;
+            effectiveTask.Status = TaskWorkStatus.Done;
+        }
+        else
+        {
+            effectiveTask.Completed = false;
+            effectiveTask.CompletedAt = null;
+            if (effectiveTask.Status == TaskWorkStatus.Done)
+            {
+                effectiveTask.Status = TaskWorkStatus.Todo;
+            }
+        }
+
+        await _taskRepository.UpdateTaskAsync(effectiveTask);
+        await ReloadTaskCollectionsAsync();
     }
 
     [RelayCommand]
@@ -1117,11 +1470,168 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(args.newText))
             return;
 
-        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId);
+        var task = Tasks.FirstOrDefault(t => t.Id == args.taskId)
+            ?? TaskHistoryTasks.FirstOrDefault(t => t.Id == args.taskId)
+            ?? await _taskRepository.GetTaskByIdAsync(args.taskId);
         if (task != null)
         {
             task.Text = args.newText;
             await _taskRepository.UpdateTaskAsync(task);
+        }
+        await ReloadTaskCollectionsAsync();
+    }
+
+    [RelayCommand]
+    private async Task ToggleTaskMonitoring(int taskId)
+    {
+        var task = await _taskRepository.GetTaskByIdAsync(taskId);
+        if (task == null)
+        {
+            return;
+        }
+
+        if (task.TrackingStartedAtUtcTicks.HasValue)
+        {
+            await StopTaskMonitoringIfRunningAsync(task);
+            if (!task.Completed && task.Status == TaskWorkStatus.InProgress)
+            {
+                task.Status = TaskWorkStatus.Todo;
+            }
+            await _taskRepository.UpdateTaskAsync(task);
+            await ReloadTaskCollectionsAsync();
+            return;
+        }
+
+        var allTasks = await _taskRepository.GetAllTasksAsync();
+        foreach (var other in allTasks.Where(t => t.Id != task.Id && t.TrackingStartedAtUtcTicks.HasValue))
+        {
+            await StopTaskMonitoringIfRunningAsync(other);
+            if (!other.Completed && other.Status == TaskWorkStatus.InProgress)
+            {
+                other.Status = TaskWorkStatus.Todo;
+            }
+            await _taskRepository.UpdateTaskAsync(other);
+        }
+
+        task.Completed = false;
+        task.CompletedAt = null;
+        task.Status = TaskWorkStatus.InProgress;
+        task.TrackingStartedAtUtcTicks = DateTime.UtcNow.Ticks;
+        await _taskRepository.UpdateTaskAsync(task);
+
+        await ReloadTaskCollectionsAsync();
+    }
+
+    [RelayCommand]
+    private async Task SetTaskTodo(int taskId)
+    {
+        var task = await _taskRepository.GetTaskByIdAsync(taskId);
+        if (task == null)
+        {
+            return;
+        }
+
+        await StopTaskMonitoringIfRunningAsync(task);
+        task.Completed = false;
+        task.CompletedAt = null;
+        task.Status = TaskWorkStatus.Todo;
+        await _taskRepository.UpdateTaskAsync(task);
+        await ReloadTaskCollectionsAsync();
+    }
+
+    [RelayCommand]
+    private async Task SetTaskDone(int taskId)
+    {
+        var task = await _taskRepository.GetTaskByIdAsync(taskId);
+        if (task == null)
+        {
+            return;
+        }
+
+        await StopTaskMonitoringIfRunningAsync(task);
+        task.Completed = true;
+        task.CompletedAt = DateTime.Now;
+        task.Status = TaskWorkStatus.Done;
+        await _taskRepository.UpdateTaskAsync(task);
+        await ReloadTaskCollectionsAsync();
+    }
+
+    private async Task StopTaskMonitoringIfRunningAsync(TaskItem task)
+    {
+        if (!task.TrackingStartedAtUtcTicks.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var startedUtc = new DateTime(task.TrackingStartedAtUtcTicks.Value, DateTimeKind.Utc);
+            var elapsedSeconds = (int)Math.Max(0, (DateTime.UtcNow - startedUtc).TotalSeconds);
+            task.TrackedSeconds = Math.Max(0, task.TrackedSeconds) + elapsedSeconds;
+        }
+        catch
+        {
+            // Keep existing tracked total on malformed timestamps.
+        }
+        finally
+        {
+            task.TrackingStartedAtUtcTicks = null;
+        }
+    }
+
+    private async Task ReloadTaskCollectionsAsync()
+    {
+        if (!string.IsNullOrEmpty(SessionId))
+        {
+            var sessionTasks = await _taskRepository.GetBySession(SessionId) ?? new List<TaskItem>();
+            Tasks.Clear();
+            foreach (var sessionTask in sessionTasks)
+            {
+                Tasks.Add(sessionTask);
+            }
+            UpdateSessionInfo();
+        }
+
+        await LoadTaskHistoryAsync();
+    }
+
+    private async Task LoadTaskHistoryAsync()
+    {
+        try
+        {
+            List<TaskItem> tasks = new();
+
+            if (ShowAllTaskDays)
+            {
+                var taskLoad = _taskRepository.GetAllTasksAsync();
+                if (taskLoad != null)
+                {
+                    tasks = (await taskLoad ?? new List<TaskItem>())
+                        .Where(t => !t.Completed && t.Status != TaskWorkStatus.Done)
+                        .ToList();
+                }
+            }
+            else
+            {
+                var start = TaskHistoryDate.DateTime.Date;
+                var end = start.AddDays(1).AddTicks(-1);
+                var taskLoad = _taskRepository.GetTasksByDateRangeAsync(start, end);
+                if (taskLoad != null)
+                {
+                    tasks = await taskLoad ?? new List<TaskItem>();
+                }
+            }
+
+            TaskHistoryTasks.Clear();
+            foreach (var task in tasks.OrderByDescending(t => t.Id))
+            {
+                TaskHistoryTasks.Add(task);
+            }
+        }
+        catch
+        {
+            // Keep UI usable even if history loading fails or mocks are incomplete.
+            TaskHistoryTasks.Clear();
         }
     }
 
@@ -1155,6 +1665,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task StartNewSession()
     {
+        CancelUndismissedCompletionReminderLoop();
+
         // End current session if running
         if (!string.IsNullOrEmpty(SessionId))
         {
@@ -1181,6 +1693,7 @@ public partial class MainViewModel : ObservableObject
         // Refresh dashboard stats and quota
         await LoadDashboardStatsAsync();
         UpdateQuotaStatus();
+        await LoadTaskHistoryAsync();
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -1193,12 +1706,56 @@ public partial class MainViewModel : ObservableObject
         IsSoundEnabled = !IsSoundEnabled;
     }
 
+    private void ScheduleVibrationAutoStop()
+    {
+        CancelVibrationAutoStopSchedule();
+
+        var durationSeconds = Math.Max(1, SoundDuration);
+        var tokenSource = new System.Threading.CancellationTokenSource();
+        _vibrationAutoStopCts = tokenSource;
+        var token = tokenSource.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(durationSeconds), token);
+                if (!token.IsCancellationRequested)
+                {
+                    _vibrationService?.Cancel();
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // expected when user stops alarm early
+            }
+        });
+    }
+
+    private void CancelVibrationAutoStopSchedule()
+    {
+        try
+        {
+            _vibrationAutoStopCts?.Cancel();
+        }
+        catch
+        {
+            // no-op
+        }
+        finally
+        {
+            _vibrationAutoStopCts?.Dispose();
+            _vibrationAutoStopCts = null;
+        }
+    }
+
     [RelayCommand]
     private void StopAlarm()
     {
         _vibrationCancellationTokenSource?.Cancel();
         _vibrationCancellationTokenSource?.Dispose();
         _vibrationCancellationTokenSource = null;
+        CancelVibrationAutoStopSchedule();
         IsRinging = false;
         _soundService?.StopNotificationSound();
         _vibrationService?.Cancel();
@@ -1227,6 +1784,158 @@ public partial class MainViewModel : ObservableObject
         _soundService?.PlayNotificationSound();
     }
 
+    private void StartClockTicker()
+    {
+        if (_clockCts != null)
+        {
+            return;
+        }
+
+        var tokenSource = new System.Threading.CancellationTokenSource();
+        _clockCts = tokenSource;
+        var token = tokenSource.Token;
+
+        _ = RunClockTickerAsync(token);
+    }
+
+    private async Task RunClockTickerAsync(System.Threading.CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                EnsureCurrentDayWellnessCounts();
+                CurrentTimeText = DateTime.Now.ToString("HH:mm:ss");
+                await Task.Delay(1000, token);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // expected on shutdown
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleStopwatch()
+    {
+        if (IsStopwatchRunning)
+        {
+            _stopwatchCts?.Cancel();
+            _stopwatchCts?.Dispose();
+            _stopwatchCts = null;
+            IsStopwatchRunning = false;
+            return;
+        }
+
+        var tokenSource = new System.Threading.CancellationTokenSource();
+        _stopwatchCts = tokenSource;
+        IsStopwatchRunning = true;
+        _ = RunStopwatchAsync(tokenSource.Token);
+    }
+
+    [RelayCommand]
+    private void ResetStopwatch()
+    {
+        _stopwatchCts?.Cancel();
+        _stopwatchCts?.Dispose();
+        _stopwatchCts = null;
+        IsStopwatchRunning = false;
+        StopwatchSeconds = 0;
+        OnPropertyChanged(nameof(StopwatchDisplay));
+    }
+
+    private async Task RunStopwatchAsync(System.Threading.CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(1000, token);
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                StopwatchSeconds++;
+                OnPropertyChanged(nameof(StopwatchDisplay));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // expected when paused/reset
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleCountdown()
+    {
+        if (IsCountdownRunning)
+        {
+            _countdownCts?.Cancel();
+            _countdownCts?.Dispose();
+            _countdownCts = null;
+            IsCountdownRunning = false;
+            return;
+        }
+
+        if (CountdownRemainingSeconds <= 0)
+        {
+            CountdownRemainingSeconds = Math.Max(1, CountdownDurationMinutes) * 60;
+            OnPropertyChanged(nameof(CountdownDisplay));
+        }
+
+        var tokenSource = new System.Threading.CancellationTokenSource();
+        _countdownCts = tokenSource;
+        IsCountdownRunning = true;
+        _ = RunCountdownAsync(tokenSource.Token);
+    }
+
+    [RelayCommand]
+    private void ResetCountdown()
+    {
+        _countdownCts?.Cancel();
+        _countdownCts?.Dispose();
+        _countdownCts = null;
+        IsCountdownRunning = false;
+        CountdownRemainingSeconds = Math.Max(1, CountdownDurationMinutes) * 60;
+        OnPropertyChanged(nameof(CountdownDisplay));
+    }
+
+    private async Task RunCountdownAsync(System.Threading.CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested && CountdownRemainingSeconds > 0)
+            {
+                await Task.Delay(1000, token);
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                CountdownRemainingSeconds = Math.Max(0, CountdownRemainingSeconds - 1);
+                OnPropertyChanged(nameof(CountdownDisplay));
+            }
+
+            if (!token.IsCancellationRequested && CountdownRemainingSeconds <= 0)
+            {
+                IsCountdownRunning = false;
+                _countdownCts?.Dispose();
+                _countdownCts = null;
+
+                if (IsVibrationEnabled && _vibrationService.IsSupported)
+                {
+                    // Countdown completion: two vibrations.
+                    _vibrationService.VibratePattern(new long[] { 0, 250, 150, 250 }, false);
+                }
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // expected when paused/reset
+        }
+    }
+
     // ═════════════════════════════════════════════════════════════
     // Commands — Overlay toggles (mutual exclusion)
     // ═════════════════════════════════════════════════════════════
@@ -1252,6 +1961,7 @@ public partial class MainViewModel : ObservableObject
         {
             CloseAllOverlays();
             ShowTasks = true;
+            _ = LoadTaskHistoryAsync();
         }
     }
 
@@ -1282,6 +1992,36 @@ public partial class MainViewModel : ObservableObject
             CloseAllOverlays();
             ShowSettings = true;
         }
+    }
+
+    [RelayCommand]
+    private void OpenExtraToolPicker()
+    {
+        ShowExtraToolPicker = true;
+    }
+
+    [RelayCommand]
+    private void SelectStopwatchTool()
+    {
+        ActiveExtraTool = "stopwatch";
+        ShowExtraToolPanel = true;
+        ShowExtraToolPicker = false;
+    }
+
+    [RelayCommand]
+    private void SelectCountdownTool()
+    {
+        ActiveExtraTool = "countdown";
+        ShowExtraToolPanel = true;
+        ShowExtraToolPicker = false;
+    }
+
+    [RelayCommand]
+    private void HideExtraTools()
+    {
+        ShowExtraToolPicker = false;
+        ShowExtraToolPanel = false;
+        ActiveExtraTool = "";
     }
 
     [RelayCommand]

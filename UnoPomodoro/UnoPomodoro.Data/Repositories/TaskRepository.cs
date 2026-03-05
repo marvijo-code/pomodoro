@@ -25,7 +25,10 @@ namespace UnoPomodoro.Data.Repositories
                 Text = text,
                 SessionId = sessionId,
                 Completed = false,
-                CompletedAt = null
+                CompletedAt = null,
+                Status = TaskWorkStatus.Todo,
+                TrackedSeconds = 0,
+                TrackingStartedAtUtcTicks = null
             };
 
             _connection.Insert(task);
@@ -39,6 +42,15 @@ namespace UnoPomodoro.Data.Repositories
             {
                 task.Completed = completed;
                 task.CompletedAt = completed ? DateTime.Now : (DateTime?)null;
+                if (completed)
+                {
+                    task.Status = TaskWorkStatus.Done;
+                    task.TrackingStartedAtUtcTicks = null;
+                }
+                else if (task.Status == TaskWorkStatus.Done)
+                {
+                    task.Status = TaskWorkStatus.Todo;
+                }
                 _connection.Update(task);
             }
             return Task.FromResult(task);

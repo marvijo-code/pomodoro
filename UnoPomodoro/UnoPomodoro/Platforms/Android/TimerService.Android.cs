@@ -15,6 +15,7 @@ namespace UnoPomodoro.Services
             var intent = new Intent(context, typeof(TimerForegroundService));
             intent.PutExtra("mode", CurrentMode);
             intent.PutExtra("totalSeconds", TotalDurationSeconds);
+            intent.PutExtra("targetEndUtcTicks", TargetEndTime.Ticks);
 
             if (OperatingSystem.IsAndroidVersionAtLeast(26))
             {

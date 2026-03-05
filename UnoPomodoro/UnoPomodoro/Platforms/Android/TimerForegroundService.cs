@@ -3,6 +3,7 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Core.App;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnoPomodoro.Services;
@@ -21,11 +22,14 @@ namespace UnoPomodoro.Platforms.Android
         private const string TimerChannelName = "Timer Active";
         private const string CompletionChannelId = "timer_completion";
         private const string CompletionChannelName = "Timer Completion";
+        private const string CompletionAlarmAction = "com.marvijocode.pomodoro.action.TIMER_COMPLETION_ALARM";
+        private const int CompletionAlarmRequestCode = 1003;
         
         private PowerManager.WakeLock? _wakeLock;
         private static TimerForegroundService? _instance;
         private string _currentMode = "pomodoro";
         private int _totalSeconds = 25 * 60;
+        private DateTime _targetEndTimeUtc;
         private bool _completionFired;
         
         // Services for triggering vibration/sound directly from the service thread,
@@ -35,7 +39,7 @@ namespace UnoPomodoro.Platforms.Android
         private static bool _soundEnabled;
         private static bool _vibrationEnabled;
         private static int _vibrationDurationSeconds = 5;
-        private static CancellationTokenSource? _vibrationCancellationTokenSource;
+        private static CancellationTokenSource? _vibrationAutoStopTokenSource;
         
         /// <summary>
         /// Whether the completion alarm (sound + vibration) was started by this service.
@@ -86,11 +90,36 @@ namespace UnoPomodoro.Platforms.Android
 
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
+            if (intent?.Action == CompletionAlarmAction)
+            {
+                _currentMode = intent.GetStringExtra("mode") ?? _currentMode;
+                CancelCompletionFallbackAlarm();
+                CreateNotificationChannels();
+                EnsureForegroundForAlarmCallback();
+
+                if (!_completionFired)
+                {
+                    _completionFired = true;
+                    ShowCompletionNotification();
+                }
+
+                return StartCommandResult.NotSticky;
+            }
+
             // Read mode and total duration from intent
             if (intent != null)
             {
                 _currentMode = intent.GetStringExtra("mode") ?? "pomodoro";
                 _totalSeconds = intent.GetIntExtra("totalSeconds", 25 * 60);
+
+                var targetEndTicks = intent.GetLongExtra("targetEndUtcTicks", 0L);
+                _targetEndTimeUtc = targetEndTicks > 0
+                    ? new DateTime(targetEndTicks, DateTimeKind.Utc)
+                    : DateTime.UtcNow.AddSeconds(_totalSeconds);
+            }
+            else
+            {
+                _targetEndTimeUtc = DateTime.UtcNow.AddSeconds(_totalSeconds);
             }
             
             _completionFired = false;
@@ -121,7 +150,116 @@ namespace UnoPomodoro.Platforms.Android
                 StartForeground(TimerNotificationId, notification);
             }
 
+            ScheduleCompletionFallbackAlarm();
+
             return StartCommandResult.Sticky;
+        }
+
+        private void EnsureForegroundForAlarmCallback()
+        {
+            try
+            {
+                var notification = new NotificationCompat.Builder(this, TimerChannelId)
+                    .SetContentTitle(GetModeTitle())
+                    .SetContentText("Timer finished")
+                    .SetSmallIcon(GetModeIcon())
+                    .SetOngoing(false)
+                    .SetPriority(NotificationCompat.PriorityLow)
+                    .Build();
+
+                if (OperatingSystem.IsAndroidVersionAtLeast(34))
+                {
+                    StartForeground(TimerNotificationId, notification, global::Android.Content.PM.ForegroundService.TypeSpecialUse);
+                }
+                else
+                {
+                    StartForeground(TimerNotificationId, notification);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error elevating service for completion alarm: {ex.Message}");
+            }
+        }
+
+        private void ScheduleCompletionFallbackAlarm()
+        {
+            try
+            {
+                var alarmManager = GetSystemService(AlarmService) as AlarmManager;
+                if (alarmManager == null)
+                {
+                    return;
+                }
+
+                var triggerAtMillis = new DateTimeOffset(_targetEndTimeUtc).ToUnixTimeMilliseconds();
+                var nowMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                if (triggerAtMillis <= nowMillis)
+                {
+                    triggerAtMillis = nowMillis + 1000;
+                }
+
+                var pendingIntent = CreateCompletionAlarmPendingIntent(PendingIntentFlags.UpdateCurrent);
+                if (pendingIntent == null)
+                {
+                    return;
+                }
+
+                if (OperatingSystem.IsAndroidVersionAtLeast(23))
+                {
+                    // Runs during doze/power-saving with best-effort timing.
+                    alarmManager.SetAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+                }
+                else if (OperatingSystem.IsAndroidVersionAtLeast(19))
+                {
+                    alarmManager.SetExact(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+                }
+                else
+                {
+                    alarmManager.Set(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error scheduling completion alarm: {ex.Message}");
+            }
+        }
+
+        private void CancelCompletionFallbackAlarm()
+        {
+            try
+            {
+                var alarmManager = GetSystemService(AlarmService) as AlarmManager;
+                var pendingIntent = CreateCompletionAlarmPendingIntent(PendingIntentFlags.NoCreate);
+
+                if (pendingIntent != null)
+                {
+                    alarmManager?.Cancel(pendingIntent);
+                    pendingIntent.Cancel();
+                    pendingIntent.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error canceling completion alarm: {ex.Message}");
+            }
+        }
+
+        private PendingIntent? CreateCompletionAlarmPendingIntent(PendingIntentFlags baseFlags)
+        {
+            var alarmIntent = new Intent(this, typeof(TimerForegroundService));
+            alarmIntent.SetAction(CompletionAlarmAction);
+            alarmIntent.PutExtra("mode", _currentMode);
+
+            var flags = baseFlags;
+            if (OperatingSystem.IsAndroidVersionAtLeast(23))
+            {
+                flags |= PendingIntentFlags.Immutable;
+            }
+
+            return OperatingSystem.IsAndroidVersionAtLeast(26)
+                ? PendingIntent.GetForegroundService(this, CompletionAlarmRequestCode, alarmIntent, flags)
+                : PendingIntent.GetService(this, CompletionAlarmRequestCode, alarmIntent, flags);
         }
         
         private PendingIntent? CreateOpenAppIntent()
@@ -211,6 +349,7 @@ namespace UnoPomodoro.Platforms.Android
             {
                 _completionFired = true;
                 ShowCompletionNotification();
+                CancelCompletionFallbackAlarm();
                 return;
             }
             
@@ -309,7 +448,7 @@ namespace UnoPomodoro.Platforms.Android
                 if (_vibrationEnabled && _vibrationService != null && _vibrationService.IsSupported)
                 {
                     _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
-                    _ = StopVibrationAfterDurationAsync();
+                    ScheduleVibrationAutoStop();
                     CompletionAlarmStarted = true;
                     System.Diagnostics.Debug.WriteLine("Completion vibration started from foreground service");
                 }
@@ -326,25 +465,62 @@ namespace UnoPomodoro.Platforms.Android
                 System.Diagnostics.Debug.WriteLine($"Error starting completion alarm: {ex.Message}");
             }
         }
-        
-        private static async Task StopVibrationAfterDurationAsync()
+
+        private void ScheduleVibrationAutoStop()
+        {
+            CancelVibrationAutoStopSchedule();
+
+            var durationSeconds = Math.Max(1, _vibrationDurationSeconds);
+            var tokenSource = new CancellationTokenSource();
+            _vibrationAutoStopTokenSource = tokenSource;
+            var token = tokenSource.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(durationSeconds), token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        _vibrationService?.Cancel();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // Ignore cancellation race when alarm is dismissed.
+                }
+            });
+        }
+
+        private static void CancelVibrationAutoStopSchedule()
         {
             try
             {
-                _vibrationCancellationTokenSource?.Cancel();
-                _vibrationCancellationTokenSource?.Dispose();
-                _vibrationCancellationTokenSource = new CancellationTokenSource();
-                var token = _vibrationCancellationTokenSource.Token;
-                await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, _vibrationDurationSeconds)), token);
+                _vibrationAutoStopTokenSource?.Cancel();
+            }
+            catch
+            {
+                // no-op
+            }
+            finally
+            {
+                _vibrationAutoStopTokenSource?.Dispose();
+                _vibrationAutoStopTokenSource = null;
+            }
+        }
+
+        public static void StopCompletionAlarm()
+        {
+            try
+            {
+                CancelVibrationAutoStopSchedule();
                 _vibrationService?.Cancel();
+                _soundService?.StopNotificationSound();
+                CompletionAlarmStarted = false;
             }
-            catch (TaskCanceledException)
+            catch (Exception ex)
             {
-                // Ignore cancellation when user manually stops the alarm.
-            }
-            catch (System.Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error stopping vibration after duration: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error stopping completion alarm: {ex.Message}");
             }
         }
         
@@ -355,6 +531,7 @@ namespace UnoPomodoro.Platforms.Android
         {
             try
             {
+                StopCompletionAlarm();
                 var context = global::Android.App.Application.Context;
                 var notificationManager = NotificationManagerCompat.From(context);
                 notificationManager.Cancel(CompletionNotificationId);
@@ -402,11 +579,9 @@ namespace UnoPomodoro.Platforms.Android
         
         public override void OnDestroy()
         {
-            _vibrationCancellationTokenSource?.Cancel();
-            _vibrationCancellationTokenSource?.Dispose();
-            _vibrationCancellationTokenSource = null;
+            CancelCompletionFallbackAlarm();
+            CancelVibrationAutoStopSchedule();
             ReleaseWakeLock();
-            CompletionAlarmStarted = false;
             _instance = null;
             base.OnDestroy();
 

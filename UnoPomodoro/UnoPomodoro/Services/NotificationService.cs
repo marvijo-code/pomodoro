@@ -62,6 +62,7 @@ public class NotificationService : INotificationService
     {
         try
         {
+            UnoPomodoro.Platforms.Android.TimerForegroundService.StopCompletionAlarm();
             UnoPomodoro.Platforms.Android.TimerForegroundService.DismissCompletionNotification();
         }
         catch (Exception ex)

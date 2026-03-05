@@ -89,10 +89,10 @@
 
       <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SurfaceColor}" />
-        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="CornerRadius" Value="0" />
         <Setter Property="Padding" Value="16" />
         <Setter Property="Margin" Value="0,8,0,8" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderThickness" Value="0,1,0,1" />
         <Setter Property="BorderBrush" Value="{StaticResource OutlineVariantColor}" />
       </Style>
 

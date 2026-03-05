@@ -9,6 +9,8 @@ using UnoPomodoro.Data.Repositories;
 using UnoPomodoro.ViewModels;
 using SQLite;
 using UnoPomodoro.Data.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace UnoPomodoro;
 
@@ -52,6 +54,7 @@ public partial class App : Application
         // Ensure tables exist
         connection.CreateTable<Session>();
         connection.CreateTable<TaskItem>();
+        EnsureTaskTableSchema(connection);
         
         // Create services
         var timerService = new TimerService();
@@ -97,6 +100,38 @@ public partial class App : Application
         MainWindow.Activate();
 
         _ = CheckForAppUpdatesAsync(mainViewModel);
+    }
+
+    private static void EnsureTaskTableSchema(SQLiteConnection connection)
+    {
+        try
+        {
+            var existingColumns = new HashSet<string>(
+                connection.GetTableInfo(nameof(TaskItem)).Select(c => c.Name),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (!existingColumns.Contains(nameof(TaskItem.Status)))
+            {
+                connection.Execute("ALTER TABLE TaskItem ADD COLUMN Status INTEGER NOT NULL DEFAULT 0");
+            }
+
+            if (!existingColumns.Contains(nameof(TaskItem.TrackedSeconds)))
+            {
+                connection.Execute("ALTER TABLE TaskItem ADD COLUMN TrackedSeconds INTEGER NOT NULL DEFAULT 0");
+            }
+
+            if (!existingColumns.Contains(nameof(TaskItem.TrackingStartedAtUtcTicks)))
+            {
+                connection.Execute("ALTER TABLE TaskItem ADD COLUMN TrackingStartedAtUtcTicks INTEGER NULL");
+            }
+
+            // Backfill status for legacy completed rows.
+            connection.Execute("UPDATE TaskItem SET Status = 2 WHERE Completed = 1 AND (Status IS NULL OR Status = 0)");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Task schema migration warning: {ex.Message}");
+        }
     }
 
     /// <summary>

@@ -12,7 +12,9 @@
     <converters:BoolToStringConverter x:Key="BoolToStringConverter" />
     <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-    <converters:SessionIdToTextConverter x:Key="SessionIdToTextConverter" />
+    <converters:TaskStatusToTextConverter x:Key="TaskStatusToTextConverter" />
+    <converters:TaskTrackedTimeConverter x:Key="TaskTrackedTimeConverter" />
+    <converters:TrackingTicksToActionTextConverter x:Key="TrackingTicksToActionTextConverter" />
     <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
     <converters:ModeToTextConverter x:Key="ModeToTextConverter" />
     <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
@@ -34,50 +36,58 @@
   </Page.DataContext>
 
   <!-- Single Page Layout - No Scrolling -->
-  <Grid Padding="12" RowSpacing="8">
+  <Grid Padding="0,12,0,12" RowSpacing="8">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />  <!-- Mode buttons -->
+      <RowDefinition Height="Auto" />  <!-- Clock + mode buttons -->
       <RowDefinition Height="*" />     <!-- Timer (flexible) -->
       <RowDefinition Height="Auto" />  <!-- Controls -->
       <RowDefinition Height="Auto" />  <!-- Stats row -->
       <RowDefinition Height="Auto" />  <!-- Quick actions -->
+      <RowDefinition Height="Auto" />  <!-- Utilities -->
     </Grid.RowDefinitions>
 
-    <!-- Mode Selection - Compact -->
-    <Grid Grid.Row="0" ColumnSpacing="6" HorizontalAlignment="Center" Canvas.ZIndex="15">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
+    <!-- Clock + Mode Selection -->
+    <StackPanel Grid.Row="0" Spacing="8" HorizontalAlignment="Center" Canvas.ZIndex="15">
+      <TextBlock Text="{Binding CurrentTimeText}"
+                 FontSize="18"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center"
+                 Foreground="{StaticResource SecondaryColor}" />
+      <Grid ColumnSpacing="6" HorizontalAlignment="Center">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
 
-      <Button Grid.Column="0"
-              Command="{Binding ChangeModeCommand}"
-              CommandParameter="pomodoro"
-              Content="🍅 Focus"
-              IsEnabled="{Binding CanChangeMode}"
-              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}"
-              Padding="12,8"
-              CornerRadius="8" />
+        <Button Grid.Column="0"
+                Command="{Binding ChangeModeCommand}"
+                CommandParameter="pomodoro"
+                Content="🍅 Focus"
+                IsEnabled="{Binding CanChangeMode}"
+                Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=pomodoro}"
+                Padding="12,8"
+                CornerRadius="8" />
 
-      <Button Grid.Column="1"
-              Command="{Binding ChangeModeCommand}"
-              CommandParameter="shortBreak"
-              Content="☕ Short"
-              IsEnabled="{Binding CanChangeMode}"
-              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}"
-              Padding="12,8"
-              CornerRadius="8" />
+        <Button Grid.Column="1"
+                Command="{Binding ChangeModeCommand}"
+                CommandParameter="shortBreak"
+                Content="☕ Short"
+                IsEnabled="{Binding CanChangeMode}"
+                Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=shortBreak}"
+                Padding="12,8"
+                CornerRadius="8" />
 
-      <Button Grid.Column="2"
-              Command="{Binding ChangeModeCommand}"
-              CommandParameter="longBreak"
-              Content="🌴 Long"
-              IsEnabled="{Binding CanChangeMode}"
-              Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}"
-              Padding="12,8"
-              CornerRadius="8" />
-    </Grid>
+        <Button Grid.Column="2"
+                Command="{Binding ChangeModeCommand}"
+                CommandParameter="longBreak"
+                Content="🌴 Long"
+                IsEnabled="{Binding CanChangeMode}"
+                Background="{Binding Mode, Converter={StaticResource ModeToColorConverter}, ConverterParameter=longBreak}"
+                Padding="12,8"
+                CornerRadius="8" />
+      </Grid>
+    </StackPanel>
 
     <!-- Timer Display - Central Focus -->
     <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -166,8 +176,10 @@
     </StackPanel>
 
     <!-- Dashboard Stats Row -->
-    <Grid Grid.Row="3" ColumnSpacing="8" HorizontalAlignment="Center" MaxWidth="400">
+    <Grid Grid.Row="3" ColumnSpacing="8" HorizontalAlignment="Stretch" Margin="12,0">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="*" />
@@ -245,11 +257,48 @@
                      Foreground="{StaticResource OnSurfaceVariantColor}" />
         </StackPanel>
       </Border>
+
+      <!-- Coffee Count -->
+      <Border Grid.Column="4" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center" Spacing="4">
+          <TextBlock Text="{Binding CoffeeCount}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource SecondaryColor}" />
+          <Button Content="☕ +"
+                  Command="{Binding AddCoffeeCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Padding="10,4" />
+        </StackPanel>
+      </Border>
+
+      <!-- Stretch Count -->
+      <Border Grid.Column="5" 
+              Background="{StaticResource SurfaceVariantColor}" 
+              CornerRadius="10" 
+              Padding="8,6">
+        <StackPanel HorizontalAlignment="Center" Spacing="4">
+          <TextBlock Text="{Binding StretchCount}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     Foreground="{StaticResource TertiaryColor}" />
+          <Button Content="🧘 +"
+                  Command="{Binding AddStretchCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Padding="10,4" />
+        </StackPanel>
+      </Border>
     </Grid>
 
     <!-- Quick Actions Row -->
     <Grid Grid.Row="4" ColumnSpacing="8" HorizontalAlignment="Center">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
@@ -293,20 +342,115 @@
               Height="44"
               Padding="0"
               CornerRadius="22" />
+
+      <!-- Extra Tool Picker -->
+      <Button Grid.Column="4"
+              Content="+"
+              Command="{Binding OpenExtraToolPickerCommand}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Width="44"
+              Height="44"
+              Padding="0"
+              CornerRadius="22" />
     </Grid>
+
+    <!-- Utility Tools -->
+    <Border Grid.Row="5"
+            Margin="0,8,0,0"
+            Padding="12,10"
+            Background="{StaticResource SurfaceColor}"
+            BorderBrush="{StaticResource OutlineVariantColor}"
+            BorderThickness="0,1,0,1"
+            Visibility="{Binding ShowExtraToolPanel, Converter={StaticResource BoolToVisibilityConverter}}">
+      <Grid>
+        <Button Content="✕"
+                Command="{Binding HideExtraToolsCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Width="32"
+                Height="32"
+                Padding="0"
+                CornerRadius="16" />
+
+        <!-- Stopwatch -->
+        <StackPanel Spacing="6"
+                    Visibility="{Binding IsStopwatchToolVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+          <TextBlock Text="Stopwatch"
+                     FontSize="12"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <TextBlock Text="{Binding StopwatchDisplay}"
+                     FontSize="24"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource PrimaryColor}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Content="{Binding IsStopwatchRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Pause/Start}"
+                    Command="{Binding ToggleStopwatchCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+            <Button Content="Reset"
+                    Command="{Binding ResetStopwatchCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Countdown -->
+        <StackPanel Spacing="6"
+                    Visibility="{Binding IsCountdownToolVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+          <TextBlock Text="Countdown"
+                     FontSize="12"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <TextBlock Text="{Binding CountdownDisplay}"
+                     FontSize="24"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource TertiaryColor}" />
+          <Grid ColumnSpacing="6">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="Min"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource OnSurfaceVariantColor}" />
+            <Slider Grid.Column="1"
+                    Value="{Binding CountdownDurationMinutes, Mode=TwoWay}"
+                    Minimum="1"
+                    Maximum="180"
+                    StepFrequency="1" />
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Content="{Binding IsCountdownRunning, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Pause/Start}"
+                    Command="{Binding ToggleCountdownCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+            <Button Content="Reset"
+                    Command="{Binding ResetCountdownCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
 
     <!-- Tasks Panel (Overlay when visible) -->
     <Border Grid.Row="1" 
-            Grid.RowSpan="3"
-            Background="{StaticResource BackgroundColor}"
-            CornerRadius="16"
+            Grid.RowSpan="5"
+            Background="{StaticResource SurfaceColor}"
+            BorderBrush="{StaticResource OutlineVariantColor}"
+            BorderThickness="0,1,0,1"
+            CornerRadius="0"
             Padding="16"
-            Margin="8"
+            Margin="0,8,0,8"
+            HorizontalAlignment="Stretch"
             Visibility="{Binding ShowTasks, Converter={StaticResource BoolToVisibilityConverter}}">
       <Grid RowSpacing="12">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -349,57 +493,192 @@
                   Padding="12,8" />
         </Grid>
 
-        <!-- Task List -->
-        <ItemsControl x:Name="TaskList" Grid.Row="2" ItemsSource="{Binding Tasks}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Margin="0,4"
-                      Padding="10"
-                      CornerRadius="8"
-                      Background="{StaticResource SurfaceVariantColor}">
-                <Grid ColumnSpacing="10">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                  </Grid.ColumnDefinitions>
+        <!-- Task history controls -->
+        <StackPanel Grid.Row="2" Spacing="8">
+          <Grid>
+            <TextBlock Text="Show all days"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource OnSurfaceColor}" />
+            <ToggleSwitch IsOn="{Binding ShowAllTaskDays, Mode=TwoWay}"
+                          HorizontalAlignment="Right"
+                          OnContent=""
+                          OffContent="" />
+          </Grid>
+          <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <DatePicker Grid.Column="0"
+                        Date="{Binding TaskHistoryDate, Mode=TwoWay}" />
+            <Button Grid.Column="1"
+                    Content="Refresh"
+                    Command="{Binding RefreshTaskHistoryCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="12,8" />
+          </Grid>
+        </StackPanel>
 
-                  <CheckBox Grid.Column="0"
-                            IsChecked="{Binding Completed, Mode=OneWay}"
-                            Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}"
-                            CommandParameter="{Binding Id}" />
+        <!-- Current session task list -->
+        <StackPanel Grid.Row="3" Spacing="6">
+          <TextBlock Text="Current Session"
+                     FontSize="14"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+          <ScrollViewer>
+            <ItemsControl x:Name="TaskList" ItemsSource="{Binding Tasks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Margin="0,4"
+                          Padding="10"
+                          CornerRadius="8"
+                          Background="{StaticResource SurfaceVariantColor}">
+                    <Grid ColumnSpacing="10">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
 
-                  <TextBlock Grid.Column="1"
-                             Text="{Binding Text}"
-                             VerticalAlignment="Center"
-                             TextWrapping="Wrap"
-                             Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
-                             Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
+                      <Border Grid.Column="0"
+                              Padding="8,4"
+                              CornerRadius="6"
+                              Background="{StaticResource SurfaceColor}">
+                        <TextBlock Text="{Binding Status, Converter={StaticResource TaskStatusToTextConverter}}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource OnSurfaceColor}" />
+                      </Border>
 
-                  <Button Grid.Column="2"
-                          Content="×"
-                          Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}"
-                          CommandParameter="{Binding Id}"
-                          Style="{StaticResource SecondaryButtonStyle}"
-                          Width="28"
-                          Height="28"
-                          Padding="0"
-                          FontSize="16" />
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Text}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
+                                   Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
+                        <TextBlock Text="{Binding ., Converter={StaticResource TaskTrackedTimeConverter}}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource SecondaryColor}" />
+                      </StackPanel>
+
+                      <Button Grid.Column="2"
+                              Content="{Binding TrackingStartedAtUtcTicks, Converter={StaticResource TrackingTicksToActionTextConverter}}"
+                              Command="{Binding DataContext.ToggleTaskMonitoringCommand, ElementName=TaskList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Padding="10,6"
+                              MinWidth="52" />
+
+                      <Button Grid.Column="3"
+                              Content="{Binding Completed, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Undo/Done}"
+                              Command="{Binding DataContext.ToggleTaskCommand, ElementName=TaskList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Padding="10,6"
+                              MinWidth="52" />
+
+                      <Button Grid.Column="4"
+                              Content="×"
+                              Command="{Binding DataContext.DeleteTaskCommand, ElementName=TaskList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Width="28"
+                              Height="28"
+                              Padding="0"
+                              FontSize="16" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+
+        <!-- All tasks list -->
+        <StackPanel Grid.Row="4" Spacing="6">
+          <TextBlock Text="{Binding ShowAllTaskDays, Converter={StaticResource BoolToStringConverter}, ConverterParameter=All Tasks/Tasks For Day}"
+                     FontSize="14"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+          <ScrollViewer>
+            <ItemsControl x:Name="AllTaskHistoryList" ItemsSource="{Binding TaskHistoryTasks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Margin="0,4"
+                          Padding="10"
+                          CornerRadius="8"
+                          Background="{StaticResource SurfaceVariantColor}">
+                    <Grid ColumnSpacing="10">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+
+                      <Border Grid.Column="0"
+                              Padding="8,4"
+                              CornerRadius="6"
+                              Background="{StaticResource SurfaceColor}">
+                        <TextBlock Text="{Binding Status, Converter={StaticResource TaskStatusToTextConverter}}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource OnSurfaceColor}" />
+                      </Border>
+
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Text}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="{Binding Completed, Converter={StaticResource BoolToColorConverter}}"
+                                   Opacity="{Binding Completed, Converter={StaticResource BoolToOpacityConverter}}" />
+                        <TextBlock Text="{Binding ., Converter={StaticResource TaskTrackedTimeConverter}}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource SecondaryColor}" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding SessionId}"
+                                 VerticalAlignment="Center"
+                                 Foreground="{StaticResource OnSurfaceVariantColor}"
+                                 FontSize="10" />
+
+                      <Button Grid.Column="3"
+                              Content="{Binding TrackingStartedAtUtcTicks, Converter={StaticResource TrackingTicksToActionTextConverter}}"
+                              Command="{Binding DataContext.ToggleTaskMonitoringCommand, ElementName=AllTaskHistoryList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Padding="10,6"
+                              MinWidth="52" />
+
+                      <Button Grid.Column="4"
+                              Content="{Binding Completed, Converter={StaticResource BoolToStringConverter}, ConverterParameter=Undo/Done}"
+                              Command="{Binding DataContext.ToggleTaskCommand, ElementName=AllTaskHistoryList}"
+                              CommandParameter="{Binding Id}"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Padding="10,6"
+                              MinWidth="52" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
       </Grid>
     </Border>
 
     <!-- Dashboard Overlay -->
     <Border Grid.Row="0" 
-            Grid.RowSpan="5"
-            Background="{StaticResource BackgroundColor}"
-            CornerRadius="16"
+            Grid.RowSpan="6"
+            Background="{StaticResource SurfaceColor}"
+            BorderBrush="{StaticResource OutlineVariantColor}"
+            BorderThickness="0,1,0,1"
+            CornerRadius="0"
             Padding="16"
-            Margin="8,50,8,8"
+            Margin="0,50,0,8"
+            HorizontalAlignment="Stretch"
             Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="10">
       <Grid RowSpacing="12">
@@ -750,11 +1029,14 @@
 
     <!-- Settings Overlay -->
     <Border Grid.Row="0" 
-            Grid.RowSpan="5"
-            Background="{StaticResource BackgroundColor}"
-            CornerRadius="16"
+            Grid.RowSpan="6"
+            Background="{StaticResource SurfaceColor}"
+            BorderBrush="{StaticResource OutlineVariantColor}"
+            BorderThickness="0,1,0,1"
+            CornerRadius="0"
             Padding="16"
-            Margin="8,50,8,8"
+            Margin="0,50,0,8"
+            HorizontalAlignment="Stretch"
             Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="10">
       <Grid RowSpacing="12">
@@ -1122,6 +1404,42 @@
               </StackPanel>
             </Border>
 
+            <!-- Coffee Counter -->
+            <Border Style="{StaticResource CardStyle}">
+              <StackPanel Spacing="15">
+                <TextBlock Text="Coffee Counter"
+                           FontSize="18"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource OnSurfaceColor}" />
+
+                <Grid ColumnSpacing="12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding CoffeeCount}"
+                             FontSize="24"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource SecondaryColor}" />
+
+                  <Button Grid.Column="1"
+                          Content="+1"
+                          Command="{Binding AddCoffeeCommand}"
+                          Style="{StaticResource PrimaryButtonStyle}"
+                          Padding="12,8" />
+
+                  <Button Grid.Column="2"
+                          Content="Reset"
+                          Command="{Binding ResetCoffeeCountCommand}"
+                          Style="{StaticResource SecondaryButtonStyle}"
+                          Padding="12,8" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -1129,7 +1447,7 @@
 
     <!-- Edit Goals Overlay -->
     <Border Grid.Row="0" 
-            Grid.RowSpan="3"
+            Grid.RowSpan="6"
             Background="#AA000000"
             Visibility="{Binding ShowEditGoals, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="20">
@@ -1242,7 +1560,7 @@
 
     <!-- Completion Dialog Overlay -->
     <Border Grid.Row="0" 
-            Grid.RowSpan="5"
+            Grid.RowSpan="6"
             Background="#AA000000"
             Visibility="{Binding ShowCompletionDialog, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="25">
@@ -1284,6 +1602,71 @@
                     Style="{StaticResource PrimaryButtonStyle}"
                     HorizontalAlignment="Stretch" />
           </Grid>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- Extra tool picker modal -->
+    <Border Grid.Row="0"
+            Grid.RowSpan="6"
+            Background="#AA000000"
+            Visibility="{Binding ShowExtraToolPicker, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="28">
+      <Border Background="{StaticResource SurfaceColor}"
+              BorderBrush="{StaticResource OutlineVariantColor}"
+              BorderThickness="0,1,0,1"
+              CornerRadius="0"
+              Padding="24"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="320">
+        <StackPanel Spacing="14">
+          <TextBlock Text="Choose Extra Tool"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+
+          <Button Content="Stopwatch"
+                  Command="{Binding SelectStopwatchToolCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}" />
+
+          <Button Content="Countdown"
+                  Command="{Binding SelectCountdownToolCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}" />
+
+          <Button Content="Hide Extra Tools"
+                  Command="{Binding HideExtraToolsCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}" />
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- Undismissed completion reminder popup -->
+    <Border Grid.Row="0"
+            Grid.RowSpan="6"
+            Background="#66000000"
+            Visibility="{Binding ShowUndismissedReminderPopup, Converter={StaticResource BoolToVisibilityConverter}}"
+            Canvas.ZIndex="30">
+      <Border Background="{StaticResource SurfaceColor}"
+              BorderBrush="{StaticResource OutlineVariantColor}"
+              BorderThickness="0,1,0,1"
+              CornerRadius="0"
+              Padding="20"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Top"
+              Margin="0,80,0,0">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Reminder"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource OnSurfaceColor}" />
+          <TextBlock Text="{Binding UndismissedReminderMessage}"
+                     TextWrapping="Wrap"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <Button Content="Dismiss Popup"
+                  Command="{Binding DismissUndismissedReminderPopupCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  HorizontalAlignment="Left" />
         </StackPanel>
       </Border>
     </Border>

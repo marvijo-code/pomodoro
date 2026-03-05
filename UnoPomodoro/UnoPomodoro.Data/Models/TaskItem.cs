@@ -14,6 +14,13 @@ public enum TaskPriority
     None = 3
 }
 
+public enum TaskWorkStatus
+{
+    Todo = 0,
+    InProgress = 1,
+    Done = 2
+}
+
 public class TaskItem
 {
     [PrimaryKey, AutoIncrement]
@@ -26,6 +33,23 @@ public class TaskItem
     public string SessionId { get; set; } = string.Empty;
     
     public DateTime? CompletedAt { get; set; }
+
+    /// <summary>
+    /// Work state of the task. TODO and InProgress are non-completed states.
+    /// Done aligns with Completed = true.
+    /// </summary>
+    public TaskWorkStatus Status { get; set; } = TaskWorkStatus.Todo;
+
+    /// <summary>
+    /// Total accumulated tracked work time for this task.
+    /// </summary>
+    public int TrackedSeconds { get; set; }
+
+    /// <summary>
+    /// UTC ticks when active time monitoring started for this task.
+    /// Null means not currently being monitored.
+    /// </summary>
+    public long? TrackingStartedAtUtcTicks { get; set; }
     
     /// <summary>
     /// Task priority level (High, Medium, Low, None). Used for sorting tasks.

@@ -171,6 +171,30 @@ public class SettingsService : ISettingsService
         set => SetValue("MonthlyGoal", value);
     }
 
+    public int CoffeeCount
+    {
+        get => GetValue<int>("CoffeeCount", 0);
+        set => SetValue("CoffeeCount", value);
+    }
+
+    public bool ShowAllTaskDays
+    {
+        get => GetValue<bool>("ShowAllTaskDays", true);
+        set => SetValue("ShowAllTaskDays", value);
+    }
+
+    public string DailyCoffeeCountsJson
+    {
+        get => GetValue<string>("DailyCoffeeCountsJson", "{}");
+        set => SetValue("DailyCoffeeCountsJson", value);
+    }
+
+    public string DailyStretchCountsJson
+    {
+        get => GetValue<string>("DailyStretchCountsJson", "{}");
+        set => SetValue("DailyStretchCountsJson", value);
+    }
+
     // Focus Streak Protection
     public bool IsStreakProtectionEnabled
     {

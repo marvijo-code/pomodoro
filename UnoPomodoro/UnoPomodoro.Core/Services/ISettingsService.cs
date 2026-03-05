@@ -46,6 +46,10 @@ public interface ISettingsService
     int DailyGoal { get; set; }
     int WeeklyGoal { get; set; }
     int MonthlyGoal { get; set; }
+    int CoffeeCount { get; set; }
+    bool ShowAllTaskDays { get; set; }
+    string DailyCoffeeCountsJson { get; set; }
+    string DailyStretchCountsJson { get; set; }
 
     // Focus Streak Protection
     bool IsStreakProtectionEnabled { get; set; }

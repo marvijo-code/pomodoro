@@ -48,6 +48,9 @@ public class MainViewModelTests
         _mockSettingsService.Object.DailyGoal = 120;
         _mockSettingsService.Object.WeeklyGoal = 840;
         _mockSettingsService.Object.MonthlyGoal = 3600;
+        _mockSettingsService.Object.ShowAllTaskDays = true;
+        _mockSettingsService.Object.DailyCoffeeCountsJson = "{}";
+        _mockSettingsService.Object.DailyStretchCountsJson = "{}";
         _mockSettingsService.Setup(x => x.LoadAsync()).Returns(Task.CompletedTask);
         _mockSettingsService.Setup(x => x.SaveAsync()).Returns(Task.CompletedTask);
 
@@ -295,6 +298,32 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task AddCoffee_ShouldIncrementTodayAndPersistDailyJson()
+    {
+        // Act
+        _viewModel.AddCoffeeCommand.Execute(null);
+        await Task.Delay(50);
+
+        // Assert
+        _viewModel.CoffeeCount.Should().Be(1);
+        _mockSettingsService.Object.DailyCoffeeCountsJson.Should().Contain(DateTime.Now.ToString("yyyy-MM-dd"));
+        _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task AddStretch_ShouldIncrementTodayAndPersistDailyJson()
+    {
+        // Act
+        _viewModel.AddStretchCommand.Execute(null);
+        await Task.Delay(50);
+
+        // Assert
+        _viewModel.StretchCount.Should().Be(1);
+        _mockSettingsService.Object.DailyStretchCountsJson.Should().Contain(DateTime.Now.ToString("yyyy-MM-dd"));
+        _mockSettingsService.Verify(x => x.SaveAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
     public void ToggleTasks_ShouldToggleShowTasks()
     {
         // Arrange
@@ -438,6 +467,40 @@ public class MainViewModelTests
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
         await Task.Delay(1200);
+
+        // Assert
+        _mockVibrationService.Verify(x => x.Cancel(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void TimerCompleted_WithSoundDisabledAndVibrationEnabled_ShouldSetIsRinging()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsSoundEnabled = false;
+        _viewModel.IsVibrationEnabled = true;
+        _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+
+        // Assert
+        _viewModel.IsRinging.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TimerCompleted_WithVibrationEnabled_ShouldAutoCancelVibrationAfterDuration()
+    {
+        // Arrange
+        _viewModel.IsRunning = true;
+        _viewModel.IsSoundEnabled = false;
+        _viewModel.IsVibrationEnabled = true;
+        _viewModel.SoundDuration = 1;
+        _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+
+        // Act
+        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
+        await Task.Delay(1300);
 
         // Assert
         _mockVibrationService.Verify(x => x.Cancel(), Times.AtLeastOnce);
