@@ -1710,7 +1710,7 @@ public partial class MainViewModel : ObservableObject
     {
         CancelVibrationAutoStopSchedule();
 
-        var durationSeconds = Math.Max(1, SoundDuration);
+        var durationSeconds = Math.Max(1, VibrationDuration);
         var tokenSource = new System.Threading.CancellationTokenSource();
         _vibrationAutoStopCts = tokenSource;
         var token = tokenSource.Token;

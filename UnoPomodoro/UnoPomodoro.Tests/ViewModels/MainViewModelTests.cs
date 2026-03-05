@@ -495,7 +495,7 @@ public class MainViewModelTests
         _viewModel.IsRunning = true;
         _viewModel.IsSoundEnabled = false;
         _viewModel.IsVibrationEnabled = true;
-        _viewModel.SoundDuration = 1;
+        _viewModel.VibrationDuration = 1;
         _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
 
         // Act
