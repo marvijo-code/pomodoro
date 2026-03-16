@@ -17,7 +17,7 @@ internal static class AndroidAppUpdateInstaller
     public static bool IsApkUrl(string? url)
     {
         return !string.IsNullOrWhiteSpace(url) &&
-            Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+            System.Uri.TryCreate(url, System.UriKind.Absolute, out var uri) &&
             uri.AbsolutePath.EndsWith(".apk", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -33,7 +33,7 @@ internal static class AndroidAppUpdateInstaller
             !context.PackageManager!.CanRequestPackageInstalls())
         {
             var permissionIntent = new Intent(Settings.ActionManageUnknownAppSources);
-            permissionIntent.SetData(Uri.Parse($"package:{context.PackageName}"));
+            permissionIntent.SetData(global::Android.Net.Uri.Parse($"package:{context.PackageName}"));
             permissionIntent.AddFlags(ActivityFlags.NewTask);
             context.StartActivity(permissionIntent);
             return false;
@@ -49,7 +49,7 @@ internal static class AndroidAppUpdateInstaller
 
         var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
             ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-            ?? Path.GetFileName(new Uri(apkUrl).LocalPath);
+            ?? Path.GetFileName(new System.Uri(apkUrl).LocalPath);
 
         if (string.IsNullOrWhiteSpace(fileName))
         {
