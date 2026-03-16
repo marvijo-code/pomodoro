@@ -11,6 +11,7 @@ public interface ITimerService
     void Pause();
     void Reset(int durationSeconds);
     void Resume();
+    void RestoreState(int remainingSeconds, DateTime targetEndTimeUtc, bool isRunning, int totalDurationSeconds, string mode);
     void SyncWithWallClock();
 
     bool IsRunning { get; }

@@ -66,6 +66,9 @@ public interface ISettingsService
     // Session retrospective prompt enabled
     bool IsRetroPromptEnabled { get; set; }
 
+    // Persisted runtime/app state used for restart recovery
+    string AppRuntimeStateJson { get; set; }
+
     /// <summary>
     /// Saves all settings to persistent storage.
     /// </summary>

@@ -4,8 +4,6 @@ using Android.OS;
 using Android.Runtime;
 using AndroidX.Core.App;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using UnoPomodoro.Services;
 
 namespace UnoPomodoro.Platforms.Android
@@ -20,8 +18,9 @@ namespace UnoPomodoro.Platforms.Android
         public const int CompletionNotificationId = 1002;
         private const string TimerChannelId = "TimerChannel";
         private const string TimerChannelName = "Timer Active";
-        private const string CompletionChannelId = "timer_completion";
+        private const string CompletionChannelId = "timer_completion_controlled_v2";
         private const string CompletionChannelName = "Timer Completion";
+        private const string LegacyCompletionChannelId = "timer_completion";
         private const string CompletionAlarmAction = "com.marvijocode.pomodoro.action.TIMER_COMPLETION_ALARM";
         private const int CompletionAlarmRequestCode = 1003;
         
@@ -39,7 +38,6 @@ namespace UnoPomodoro.Platforms.Android
         private static bool _soundEnabled;
         private static bool _vibrationEnabled;
         private static int _vibrationDurationSeconds = 5;
-        private static CancellationTokenSource? _vibrationAutoStopTokenSource;
         
         /// <summary>
         /// Whether the completion alarm (sound + vibration) was started by this service.
@@ -415,8 +413,6 @@ namespace UnoPomodoro.Platforms.Android
                     .SetFullScreenIntent(fullScreenIntent, true)
                     .SetContentIntent(contentIntent)
                     .SetAutoCancel(true)
-                    .SetDefaults(NotificationCompat.DefaultAll)
-                    .SetVibrate(new long[] { 0, 500, 300, 500, 300, 500, 300, 500 })
                     .Build();
                 
                 var notificationManager = GetSystemService(NotificationService) as NotificationManager;
@@ -447,8 +443,7 @@ namespace UnoPomodoro.Platforms.Android
             {
                 if (_vibrationEnabled && _vibrationService != null && _vibrationService.IsSupported)
                 {
-                    _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
-                    ScheduleVibrationAutoStop();
+                    _vibrationService.VibratePattern(CompletionVibrationPattern.Build(_vibrationDurationSeconds), false);
                     CompletionAlarmStarted = true;
                     System.Diagnostics.Debug.WriteLine("Completion vibration started from foreground service");
                 }
@@ -466,54 +461,10 @@ namespace UnoPomodoro.Platforms.Android
             }
         }
 
-        private void ScheduleVibrationAutoStop()
-        {
-            CancelVibrationAutoStopSchedule();
-
-            var durationSeconds = Math.Max(1, _vibrationDurationSeconds);
-            var tokenSource = new CancellationTokenSource();
-            _vibrationAutoStopTokenSource = tokenSource;
-            var token = tokenSource.Token;
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(durationSeconds), token);
-                    if (!token.IsCancellationRequested)
-                    {
-                        _vibrationService?.Cancel();
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                    // Ignore cancellation race when alarm is dismissed.
-                }
-            });
-        }
-
-        private static void CancelVibrationAutoStopSchedule()
-        {
-            try
-            {
-                _vibrationAutoStopTokenSource?.Cancel();
-            }
-            catch
-            {
-                // no-op
-            }
-            finally
-            {
-                _vibrationAutoStopTokenSource?.Dispose();
-                _vibrationAutoStopTokenSource = null;
-            }
-        }
-
         public static void StopCompletionAlarm()
         {
             try
             {
-                CancelVibrationAutoStopSchedule();
                 _vibrationService?.Cancel();
                 _soundService?.StopNotificationSound();
                 CompletionAlarmStarted = false;
@@ -552,14 +503,15 @@ namespace UnoPomodoro.Platforms.Android
                 var timerChannel = new NotificationChannel(TimerChannelId, TimerChannelName, NotificationImportance.Low);
                 timerChannel.SetShowBadge(false);
                 notificationManager?.CreateNotificationChannel(timerChannel);
+                notificationManager?.DeleteNotificationChannel(LegacyCompletionChannelId);
                 
                 // High-priority channel for timer completion alerts
                 var completionChannel = new NotificationChannel(CompletionChannelId, CompletionChannelName, NotificationImportance.High)
                 {
                     Description = "Alerts when a Pomodoro or break timer completes"
                 };
-                completionChannel.EnableVibration(true);
-                completionChannel.SetVibrationPattern(new long[] { 0, 500, 300, 500, 300, 500 });
+                completionChannel.EnableVibration(false);
+                completionChannel.SetVibrationPattern(Array.Empty<long>());
                 completionChannel.EnableLights(true);
                 completionChannel.LockscreenVisibility = NotificationVisibility.Public;
                 notificationManager?.CreateNotificationChannel(completionChannel);
@@ -580,7 +532,6 @@ namespace UnoPomodoro.Platforms.Android
         public override void OnDestroy()
         {
             CancelCompletionFallbackAlarm();
-            CancelVibrationAutoStopSchedule();
             ReleaseWakeLock();
             _instance = null;
             base.OnDestroy();

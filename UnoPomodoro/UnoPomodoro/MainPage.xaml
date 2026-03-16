@@ -1621,10 +1621,22 @@
               VerticalAlignment="Center"
               Width="320">
         <StackPanel Spacing="14">
-          <TextBlock Text="Choose Extra Tool"
-                     FontSize="20"
-                     FontWeight="SemiBold"
-                     Foreground="{StaticResource OnSurfaceColor}" />
+          <Grid>
+            <TextBlock Text="Choose Extra Tools"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource OnSurfaceColor}"
+                       VerticalAlignment="Center" />
+            <Button Content="X"
+                    Command="{Binding HideExtraToolsCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Width="32"
+                    Height="32"
+                    Padding="0"
+                    CornerRadius="16" />
+          </Grid>
 
           <Button Content="Stopwatch"
                   Command="{Binding SelectStopwatchToolCommand}"

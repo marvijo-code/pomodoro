@@ -6,7 +6,9 @@ using UnoPomodoro.Data.Models;
 using UnoPomodoro.Data.Repositories;
 using UnoPomodoro.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace UnoPomodoro.Tests.ViewModels;
@@ -51,6 +53,7 @@ public class MainViewModelTests
         _mockSettingsService.Object.ShowAllTaskDays = true;
         _mockSettingsService.Object.DailyCoffeeCountsJson = "{}";
         _mockSettingsService.Object.DailyStretchCountsJson = "{}";
+        _mockSettingsService.Object.AppRuntimeStateJson = string.Empty;
         _mockSettingsService.Setup(x => x.LoadAsync()).Returns(Task.CompletedTask);
         _mockSettingsService.Setup(x => x.SaveAsync()).Returns(Task.CompletedTask);
 
@@ -444,32 +447,48 @@ public class MainViewModelTests
     public void TimerCompleted_WithVibrationEnabled_ShouldVibrate()
     {
         // Arrange
+        long[]? capturedPattern = null;
+        bool? capturedRepeat = null;
         _viewModel.IsRunning = true;
         _viewModel.IsVibrationEnabled = true;
         _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+        _mockVibrationService
+            .Setup(x => x.VibratePattern(It.IsAny<long[]>(), It.IsAny<bool>()))
+            .Callback<long[], bool>((pattern, repeat) =>
+            {
+                capturedPattern = pattern;
+                capturedRepeat = repeat;
+            });
 
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
 
-        // Assert - repeat=true so alarm vibrates until user dismisses completion dialog
-        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), true), Times.Once);
+        // Assert - pattern is finite and matches the configured duration
+        capturedRepeat.Should().BeFalse();
+        capturedPattern.Should().NotBeNull();
+        CompletionVibrationPattern.GetDurationMilliseconds(capturedPattern!).Should().Be(5000);
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), false), Times.Once);
     }
     
     [Fact]
-    public async Task TimerCompleted_WithVibrationEnabled_ShouldAutoStopVibrationAfterDuration()
+    public void TimerCompleted_WithVibrationEnabled_ShouldRespectConfiguredDuration()
     {
         // Arrange
+        long[]? capturedPattern = null;
         _viewModel.IsRunning = true;
         _viewModel.IsVibrationEnabled = true;
-        _viewModel.VibrationDuration = 1;
+        _viewModel.VibrationDuration = 2;
         _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+        _mockVibrationService
+            .Setup(x => x.VibratePattern(It.IsAny<long[]>(), It.IsAny<bool>()))
+            .Callback<long[], bool>((pattern, _) => capturedPattern = pattern);
 
         // Act
         _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
-        await Task.Delay(1200);
 
         // Assert
-        _mockVibrationService.Verify(x => x.Cancel(), Times.AtLeastOnce);
+        capturedPattern.Should().NotBeNull();
+        CompletionVibrationPattern.GetDurationMilliseconds(capturedPattern!).Should().Be(2000);
     }
 
     [Fact]
@@ -489,21 +508,109 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task TimerCompleted_WithVibrationEnabled_ShouldAutoCancelVibrationAfterDuration()
+    public void ToggleTimer_WhenStarted_ShouldPersistRuntimeState()
     {
         // Arrange
-        _viewModel.IsRunning = true;
-        _viewModel.IsSoundEnabled = false;
-        _viewModel.IsVibrationEnabled = true;
-        _viewModel.VibrationDuration = 1;
-        _mockVibrationService.Setup(x => x.IsSupported).Returns(true);
+        _mockSessionRepository.Setup(x => x.CreateSession(It.IsAny<string>(), "pomodoro", It.IsAny<DateTime>()))
+            .ReturnsAsync((string sessionId, string mode, DateTime startTime) => new Session(sessionId, mode, startTime));
 
         // Act
-        _mockTimerService.Raise(x => x.TimerCompleted += null, EventArgs.Empty);
-        await Task.Delay(1300);
+        _viewModel.ToggleTimerCommand.Execute(null);
 
         // Assert
-        _mockVibrationService.Verify(x => x.Cancel(), Times.AtLeastOnce);
+        var state = JsonSerializer.Deserialize<AppRuntimeState>(_mockSettingsService.Object.AppRuntimeStateJson);
+        state.Should().NotBeNull();
+        state!.IsRunning.Should().BeTrue();
+        state.Mode.Should().Be("pomodoro");
+        state.SessionId.Should().Be(_viewModel.SessionId);
+    }
+
+    [Fact]
+    public async Task Constructor_WithPersistedRunningState_ShouldRestoreTimerState()
+    {
+        // Arrange
+        var targetEndUtc = DateTime.UtcNow.AddSeconds(180);
+        _mockSettingsService.Object.AppRuntimeStateJson = JsonSerializer.Serialize(new AppRuntimeState
+        {
+            Mode = "shortBreak",
+            TimeLeftSeconds = 180,
+            IsRunning = true,
+            TargetEndUtcTicks = targetEndUtc.Ticks,
+            TotalDurationSeconds = 300,
+            SessionId = "persisted-session",
+            PomodoroCount = 2
+        });
+        _mockTaskRepository.Setup(x => x.GetBySession("persisted-session"))
+            .ReturnsAsync(new List<TaskItem> { new("Recovered task", "persisted-session") { Id = 42 } });
+
+        var viewModel = new MainViewModel(
+            _mockTimerService.Object,
+            _mockSessionRepository.Object,
+            _mockTaskRepository.Object,
+            _mockSoundService.Object,
+            _mockNotificationService.Object,
+            _mockStatisticsService.Object,
+            _mockVibrationService.Object,
+            _mockSettingsService.Object);
+
+        // Act
+        await Task.Delay(100);
+
+        // Assert
+        viewModel.Mode.Should().Be("shortBreak");
+        viewModel.IsRunning.Should().BeTrue();
+        viewModel.SessionId.Should().Be("persisted-session");
+        viewModel.TimeLeft.Should().BeInRange(1, 180);
+        viewModel.Tasks.Should().ContainSingle(t => t.Id == 42);
+        _mockTimerService.Verify(
+            x => x.RestoreState(
+                It.Is<int>(seconds => seconds >= 1 && seconds <= 180),
+                It.Is<DateTime>(date => date == targetEndUtc),
+                true,
+                300,
+                "shortBreak"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Constructor_WithPersistedCompletionPending_ShouldRestoreCompletionDialog()
+    {
+        // Arrange
+        _mockSettingsService.Object.AppRuntimeStateJson = JsonSerializer.Serialize(new AppRuntimeState
+        {
+            Mode = "pomodoro",
+            TimeLeftSeconds = 0,
+            IsRunning = false,
+            TotalDurationSeconds = 1500,
+            SessionId = "persisted-session",
+            CompletionPending = true,
+            CompletionTitle = "Pomodoro Completed!",
+            CompletionMessage = "Recovered from saved state.",
+            NextActionLabel = "Start Short Break",
+            PendingNextMode = "shortBreak"
+        });
+        _mockTaskRepository.Setup(x => x.GetBySession("persisted-session"))
+            .ReturnsAsync(new List<TaskItem>());
+
+        var viewModel = new MainViewModel(
+            _mockTimerService.Object,
+            _mockSessionRepository.Object,
+            _mockTaskRepository.Object,
+            _mockSoundService.Object,
+            _mockNotificationService.Object,
+            _mockStatisticsService.Object,
+            _mockVibrationService.Object,
+            _mockSettingsService.Object);
+
+        // Act
+        await Task.Delay(100);
+
+        // Assert
+        viewModel.ShowCompletionDialog.Should().BeTrue();
+        viewModel.CompletionTitle.Should().Be("Pomodoro Completed!");
+        viewModel.CompletionMessage.Should().Be("Recovered from saved state.");
+        viewModel.NextActionLabel.Should().Be("Start Short Break");
+        viewModel.IsRunning.Should().BeFalse();
     }
 
     [Fact]

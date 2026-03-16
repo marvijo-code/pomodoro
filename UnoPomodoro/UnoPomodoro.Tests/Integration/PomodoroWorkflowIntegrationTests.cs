@@ -460,7 +460,7 @@ public class PomodoroWorkflowIntegrationTests
 
         // Assert
         _mockSoundService.Verify(x => x.PlayNotificationSound(), Times.Once);
-        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), true), Times.Once);
+        _mockVibrationService.Verify(x => x.VibratePattern(It.IsAny<long[]>(), false), Times.Once);
     }
 
     [Fact]

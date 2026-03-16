@@ -38,6 +38,13 @@ namespace UnoPomodoro.Services
 
         public void Pause()
         {
+            if (_isRunning)
+            {
+                var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
+                _remainingSeconds = Math.Max(0, (int)Math.Ceiling(remaining.TotalSeconds));
+                _targetEndTime = DateTime.UtcNow.AddSeconds(_remainingSeconds);
+            }
+
             _isRunning = false;
             StopTimer();
             StopPlatformBackgroundService();
@@ -50,6 +57,8 @@ namespace UnoPomodoro.Services
             StopPlatformBackgroundService();
             
             _remainingSeconds = seconds;
+            _targetEndTime = DateTime.UtcNow.AddSeconds(seconds);
+            TotalDurationSeconds = Math.Max(1, seconds);
             Tick?.Invoke(this, _remainingSeconds);
         }
 
@@ -59,7 +68,7 @@ namespace UnoPomodoro.Services
             {
                 // Recompute remaining seconds from wall clock to avoid drift
                 var remaining = _targetEndTime.Subtract(DateTime.UtcNow);
-                _remainingSeconds = (int)remaining.TotalSeconds;
+                _remainingSeconds = Math.Max(0, (int)Math.Ceiling(remaining.TotalSeconds));
                 if (_remainingSeconds <= 0)
                 {
                     _remainingSeconds = 0;
@@ -71,6 +80,26 @@ namespace UnoPomodoro.Services
                     StartTimer();
                     StartPlatformBackgroundService();
                 }
+            }
+        }
+
+        public void RestoreState(int remainingSeconds, DateTime targetEndTimeUtc, bool isRunning, int totalDurationSeconds, string mode)
+        {
+            StopTimer();
+            StopPlatformBackgroundService();
+
+            _remainingSeconds = Math.Max(0, remainingSeconds);
+            _targetEndTime = targetEndTimeUtc.Kind == DateTimeKind.Utc
+                ? targetEndTimeUtc
+                : targetEndTimeUtc.ToUniversalTime();
+            _isRunning = isRunning && _remainingSeconds > 0;
+            TotalDurationSeconds = Math.Max(1, totalDurationSeconds);
+            CurrentMode = string.IsNullOrWhiteSpace(mode) ? "pomodoro" : mode;
+
+            if (_isRunning)
+            {
+                StartTimer();
+                StartPlatformBackgroundService();
             }
         }
         

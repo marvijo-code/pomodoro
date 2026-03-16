@@ -230,6 +230,12 @@ public class SettingsService : ISettingsService
         set => SetValue("IsRetroPromptEnabled", value);
     }
 
+    public string AppRuntimeStateJson
+    {
+        get => GetValue<string>("AppRuntimeStateJson", string.Empty);
+        set => SetValue("AppRuntimeStateJson", value ?? string.Empty);
+    }
+
     public SettingsService()
     {
         LoadAsync().GetAwaiter().GetResult();

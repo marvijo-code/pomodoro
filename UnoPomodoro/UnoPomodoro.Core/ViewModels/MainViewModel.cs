@@ -79,9 +79,8 @@ public partial class MainViewModel : ObservableObject
 
     private string _pendingNextMode = "shortBreak";
     private bool _completionHandled;
-    private CancellationTokenSource? _vibrationCancellationTokenSource;
-    private System.Threading.CancellationTokenSource? _vibrationAutoStopCts;
     private System.Threading.CancellationTokenSource? _undismissedCompletionReminderCts;
+    private bool _isRestoringRuntimeState;
     private static readonly TimeSpan UndismissedReminderInitialDelay = TimeSpan.FromHours(1);
     private static readonly TimeSpan UndismissedReminderInterval = TimeSpan.FromMinutes(5);
 
@@ -465,18 +464,14 @@ public partial class MainViewModel : ObservableObject
         ApplySettingsToViewModel();
         RebuildTimeDictionary();
 
-        TimeLeft = _times[Mode];
-        SessionId = null;
-        UpdateProgressPercentage();
-        UpdateSessionInfo();
-
         // Initialize sound service from settings
         _soundService.Volume = SoundVolume / 100.0;
         _soundService.Duration = SoundDuration;
         CountdownRemainingSeconds = Math.Max(1, CountdownDurationMinutes) * 60;
 
+        await RestoreAppRuntimeStateAsync();
+
         StartClockTicker();
-        await LoadTaskHistoryAsync();
 
         if (_timerService.CompletionAlarmStartedByPlatform && !ShowCompletionDialog)
         {
@@ -634,6 +629,203 @@ public partial class MainViewModel : ObservableObject
     {
         applyToService();
         await _settingsService.SaveAsync();
+    }
+
+    private static string NormalizeMode(string? mode, string fallback = "pomodoro")
+    {
+        return mode switch
+        {
+            "pomodoro" => "pomodoro",
+            "shortBreak" => "shortBreak",
+            "longBreak" => "longBreak",
+            _ => fallback
+        };
+    }
+
+    private int GetDefaultTimeForMode(string mode)
+    {
+        return _times.TryGetValue(mode, out var durationSeconds)
+            ? durationSeconds
+            : _times["pomodoro"];
+    }
+
+    private int GetSnapshotTotalDurationSeconds(AppRuntimeState state)
+    {
+        return state.TotalDurationSeconds > 0
+            ? state.TotalDurationSeconds
+            : GetDefaultTimeForMode(NormalizeMode(state.Mode));
+    }
+
+    private AppRuntimeState CreateAppRuntimeState(bool? completionPending = null)
+    {
+        var effectiveMode = NormalizeMode(Mode);
+        var effectiveTimeLeft = IsRunning
+            ? Math.Max(0, _timerService.RemainingSeconds)
+            : Math.Max(0, TimeLeft);
+        var effectiveTargetEndUtcTicks = _timerService.TargetEndTime == default
+            ? 0
+            : _timerService.TargetEndTime.ToUniversalTime().Ticks;
+        var effectiveTotalDurationSeconds = _timerService.TotalDurationSeconds > 0
+            ? _timerService.TotalDurationSeconds
+            : GetDefaultTimeForMode(effectiveMode);
+
+        return new AppRuntimeState
+        {
+            Mode = effectiveMode,
+            TimeLeftSeconds = effectiveTimeLeft,
+            IsRunning = IsRunning,
+            TargetEndUtcTicks = effectiveTargetEndUtcTicks,
+            TotalDurationSeconds = effectiveTotalDurationSeconds,
+            SessionId = SessionId,
+            PomodoroCount = PomodoroCount,
+            CompletionPending = completionPending ?? ShowCompletionDialog,
+            PendingNextMode = NormalizeMode(_pendingNextMode, "shortBreak"),
+            CompletionTitle = CompletionTitle,
+            CompletionMessage = CompletionMessage,
+            NextActionLabel = NextActionLabel,
+            SessionNotes = SessionNotes,
+            DistractionCount = DistractionCount,
+            SessionTag = SessionTag,
+            SessionRating = SessionRating,
+            RetroNote = RetroNote,
+            ShowRetroPrompt = ShowRetroPrompt,
+            BreakSuggestion = BreakSuggestion,
+            ShowTasks = ShowTasks,
+            ShowExtraToolPanel = ShowExtraToolPanel,
+            ActiveExtraTool = ActiveExtraTool
+        };
+    }
+
+    private async Task PersistAppRuntimeStateAsync(bool? completionPending = null)
+    {
+        if (_isRestoringRuntimeState)
+        {
+            return;
+        }
+
+        _settingsService.AppRuntimeStateJson = JsonSerializer.Serialize(CreateAppRuntimeState(completionPending));
+        await _settingsService.SaveAsync();
+    }
+
+    private void PersistAppRuntimeState(bool? completionPending = null)
+    {
+        _ = PersistAppRuntimeStateAsync(completionPending);
+    }
+
+    private async Task RestoreAppRuntimeStateAsync()
+    {
+        AppRuntimeState? state = null;
+        if (!string.IsNullOrWhiteSpace(_settingsService.AppRuntimeStateJson))
+        {
+            try
+            {
+                state = JsonSerializer.Deserialize<AppRuntimeState>(_settingsService.AppRuntimeStateJson);
+            }
+            catch
+            {
+                state = null;
+            }
+        }
+
+        _isRestoringRuntimeState = true;
+        try
+        {
+            if (state == null)
+            {
+                Mode = "pomodoro";
+                TimeLeft = GetDefaultTimeForMode(Mode);
+                SessionId = null;
+                UpdateProgressPercentage();
+                UpdateSessionInfo();
+                await LoadTaskHistoryAsync();
+                return;
+            }
+
+            Mode = NormalizeMode(state.Mode);
+            SessionId = string.IsNullOrWhiteSpace(state.SessionId) ? null : state.SessionId;
+            PomodoroCount = Math.Max(0, state.PomodoroCount);
+            SessionNotes = state.SessionNotes ?? string.Empty;
+            DistractionCount = Math.Max(0, state.DistractionCount);
+            SessionTag = state.SessionTag ?? string.Empty;
+            SessionRating = Math.Max(0, state.SessionRating);
+            RetroNote = state.RetroNote ?? string.Empty;
+            ShowRetroPrompt = state.ShowRetroPrompt;
+            BreakSuggestion = state.BreakSuggestion ?? string.Empty;
+            ShowTasks = state.ShowTasks;
+            ShowExtraToolPanel = state.ShowExtraToolPanel;
+            ActiveExtraTool = state.ActiveExtraTool ?? string.Empty;
+            _pendingNextMode = NormalizeMode(state.PendingNextMode, "shortBreak");
+
+            if (!string.IsNullOrEmpty(SessionId))
+            {
+                await ReloadTaskCollectionsAsync();
+            }
+            else
+            {
+                await LoadTaskHistoryAsync();
+            }
+
+            var restoredTimeLeft = state.TimeLeftSeconds > 0
+                ? state.TimeLeftSeconds
+                : GetDefaultTimeForMode(Mode);
+            var restoredTargetEndUtc = state.TargetEndUtcTicks > 0
+                ? new DateTime(state.TargetEndUtcTicks, DateTimeKind.Utc)
+                : DateTime.UtcNow.AddSeconds(restoredTimeLeft);
+            var totalDurationSeconds = GetSnapshotTotalDurationSeconds(state);
+            var completionShouldBeRestored = state.CompletionPending ||
+                (state.IsRunning && restoredTargetEndUtc <= DateTime.UtcNow);
+
+            if (completionShouldBeRestored)
+            {
+                TimeLeft = 0;
+                IsRunning = false;
+                _completionHandled = true;
+                _timerService.RestoreState(0, DateTime.UtcNow, false, totalDurationSeconds, Mode);
+
+                CompletionTitle = string.IsNullOrWhiteSpace(state.CompletionTitle)
+                    ? (Mode == "pomodoro" ? "Pomodoro Completed!" : "Break Over!")
+                    : state.CompletionTitle;
+                CompletionMessage = string.IsNullOrWhiteSpace(state.CompletionMessage)
+                    ? (Mode == "pomodoro" ? BuildPomodoroCompletionMessage() : "Break is over. Ready to focus?")
+                    : state.CompletionMessage;
+                NextActionLabel = string.IsNullOrWhiteSpace(state.NextActionLabel)
+                    ? (_pendingNextMode switch
+                    {
+                        "shortBreak" => "Start Short Break",
+                        "longBreak" => "Start Long Break",
+                        _ => "Start Focus"
+                    })
+                    : state.NextActionLabel;
+                IsRinging = _timerService.CompletionAlarmStartedByPlatform;
+                ShowCompletionDialog = true;
+                ShowUndismissedReminderPopup = false;
+                StartUndismissedCompletionReminderLoop();
+            }
+            else if (state.IsRunning)
+            {
+                var remainingSeconds = Math.Max(0, (int)Math.Ceiling(restoredTargetEndUtc.Subtract(DateTime.UtcNow).TotalSeconds));
+                TimeLeft = remainingSeconds;
+                IsRunning = remainingSeconds > 0;
+                _completionHandled = false;
+                _timerService.RestoreState(remainingSeconds, restoredTargetEndUtc, IsRunning, totalDurationSeconds, Mode);
+            }
+            else
+            {
+                TimeLeft = restoredTimeLeft;
+                IsRunning = false;
+                _completionHandled = false;
+                _timerService.RestoreState(TimeLeft, restoredTargetEndUtc, false, totalDurationSeconds, Mode);
+            }
+
+            UpdateProgressPercentage();
+            UpdateSessionInfo();
+        }
+        finally
+        {
+            _isRestoringRuntimeState = false;
+        }
+
+        await PersistAppRuntimeStateAsync();
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -912,6 +1104,56 @@ public partial class MainViewModel : ObservableObject
         _ = PersistSettingAsync(() => _settingsService.IsRetroPromptEnabled = value);
     }
 
+    partial void OnSessionNotesChanged(string value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnSessionTagChanged(string value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnDistractionCountChanged(int value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnSessionRatingChanged(int value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnRetroNoteChanged(string value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnShowRetroPromptChanged(bool value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnBreakSuggestionChanged(string value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnShowTasksChanged(bool value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnShowExtraToolPanelChanged(bool value)
+    {
+        PersistAppRuntimeState();
+    }
+
+    partial void OnActiveExtraToolChanged(string value)
+    {
+        PersistAppRuntimeState();
+    }
+
     // ═════════════════════════════════════════════════════════════
     // Timer events
     // ═════════════════════════════════════════════════════════════
@@ -951,11 +1193,10 @@ public partial class MainViewModel : ObservableObject
             IsRinging = true;
         }
 
-        // Vibration notification (repeating until dismissed)
+        // Vibration notification (finite pattern honoring the configured duration)
         if (vibrationSupported && !alarmAlreadyStarted)
         {
-            _vibrationService.VibratePattern(new long[] { 0, 400, 200, 400, 200, 400 }, true);
-            _ = StopVibrationAfterDurationAsync();
+            _vibrationService.VibratePattern(CompletionVibrationPattern.Build(VibrationDuration), false);
         }
 
         // Track pomodoro completions for long-break logic
@@ -1011,6 +1252,7 @@ public partial class MainViewModel : ObservableObject
         ShowUndismissedReminderPopup = false;
         ShowCompletionDialog = true;
         StartUndismissedCompletionReminderLoop();
+        PersistAppRuntimeState(completionPending: true);
     }
 
     private void StartUndismissedCompletionReminderLoop()
@@ -1102,6 +1344,7 @@ public partial class MainViewModel : ObservableObject
         // Refresh dashboard stats
         await LoadDashboardStatsAsync();
         UpdateQuotaStatus();
+        PersistAppRuntimeState(completionPending: false);
     }
 
     [RelayCommand]
@@ -1134,6 +1377,8 @@ public partial class MainViewModel : ObservableObject
         {
             ToggleTimer();
         }
+
+        PersistAppRuntimeState(completionPending: false);
     }
 
     [RelayCommand]
@@ -1202,6 +1447,7 @@ public partial class MainViewModel : ObservableObject
         ChangeMode(nextMode);
         await RestoreCarryOverTasksIfNeededAsync(nextMode);
         UpdateSessionInfo();
+        PersistAppRuntimeState(completionPending: false);
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -1297,12 +1543,14 @@ public partial class MainViewModel : ObservableObject
 
             IsRunning = true;
             UpdateSessionInfo();
+            PersistAppRuntimeState(completionPending: false);
         }
         else
         {
             _timerService.Pause();
             IsRunning = false;
             UpdateSessionInfo();
+            PersistAppRuntimeState(completionPending: false);
         }
     }
 
@@ -1316,6 +1564,7 @@ public partial class MainViewModel : ObservableObject
         IsRunning = false;
         UpdateProgressPercentage();
         UpdateSessionInfo();
+        PersistAppRuntimeState(completionPending: false);
     }
 
     [RelayCommand]
@@ -1339,6 +1588,7 @@ public partial class MainViewModel : ObservableObject
         _timerService.Reset(TimeLeft);
         UpdateProgressPercentage();
         UpdateSessionInfo();
+        PersistAppRuntimeState(completionPending: false);
     }
 
     [RelayCommand]
@@ -1352,6 +1602,7 @@ public partial class MainViewModel : ObservableObject
         }
         UpdateProgressPercentage();
         UpdateSessionInfo();
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
@@ -1413,6 +1664,7 @@ public partial class MainViewModel : ObservableObject
         }
         NewTask = "";
         await LoadTaskHistoryAsync();
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
@@ -1694,6 +1946,7 @@ public partial class MainViewModel : ObservableObject
         await LoadDashboardStatsAsync();
         UpdateQuotaStatus();
         await LoadTaskHistoryAsync();
+        PersistAppRuntimeState(completionPending: false);
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -1706,76 +1959,12 @@ public partial class MainViewModel : ObservableObject
         IsSoundEnabled = !IsSoundEnabled;
     }
 
-    private void ScheduleVibrationAutoStop()
-    {
-        CancelVibrationAutoStopSchedule();
-
-        var durationSeconds = Math.Max(1, VibrationDuration);
-        var tokenSource = new System.Threading.CancellationTokenSource();
-        _vibrationAutoStopCts = tokenSource;
-        var token = tokenSource.Token;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(durationSeconds), token);
-                if (!token.IsCancellationRequested)
-                {
-                    _vibrationService?.Cancel();
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                // expected when user stops alarm early
-            }
-        });
-    }
-
-    private void CancelVibrationAutoStopSchedule()
-    {
-        try
-        {
-            _vibrationAutoStopCts?.Cancel();
-        }
-        catch
-        {
-            // no-op
-        }
-        finally
-        {
-            _vibrationAutoStopCts?.Dispose();
-            _vibrationAutoStopCts = null;
-        }
-    }
-
     [RelayCommand]
     private void StopAlarm()
     {
-        _vibrationCancellationTokenSource?.Cancel();
-        _vibrationCancellationTokenSource?.Dispose();
-        _vibrationCancellationTokenSource = null;
-        CancelVibrationAutoStopSchedule();
         IsRinging = false;
         _soundService?.StopNotificationSound();
         _vibrationService?.Cancel();
-    }
-    
-    private async Task StopVibrationAfterDurationAsync()
-    {
-        try
-        {
-            _vibrationCancellationTokenSource?.Cancel();
-            _vibrationCancellationTokenSource?.Dispose();
-            _vibrationCancellationTokenSource = new CancellationTokenSource();
-            var token = _vibrationCancellationTokenSource.Token;
-            await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, VibrationDuration)), token);
-            _vibrationService?.Cancel();
-        }
-        catch (TaskCanceledException)
-        {
-            // Ignore cancellation when user manually dismisses alarm.
-        }
     }
 
     [RelayCommand]
@@ -1998,6 +2187,7 @@ public partial class MainViewModel : ObservableObject
     private void OpenExtraToolPicker()
     {
         ShowExtraToolPicker = true;
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
@@ -2006,6 +2196,7 @@ public partial class MainViewModel : ObservableObject
         ActiveExtraTool = "stopwatch";
         ShowExtraToolPanel = true;
         ShowExtraToolPicker = false;
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
@@ -2014,6 +2205,7 @@ public partial class MainViewModel : ObservableObject
         ActiveExtraTool = "countdown";
         ShowExtraToolPanel = true;
         ShowExtraToolPicker = false;
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
@@ -2022,6 +2214,7 @@ public partial class MainViewModel : ObservableObject
         ShowExtraToolPicker = false;
         ShowExtraToolPanel = false;
         ActiveExtraTool = "";
+        PersistAppRuntimeState();
     }
 
     [RelayCommand]
