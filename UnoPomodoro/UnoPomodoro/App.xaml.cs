@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Uno.Resizetizer;
 using UnoPomodoro.Services;
@@ -224,26 +223,31 @@ public partial class App : Application
             }
 
             var response = await UpdateHttpClient.GetStringAsync("https://api.github.com/repos/marvijo-code/pomodoro/releases/latest");
-            using var document = JsonDocument.Parse(response);
-
-            var tagName = document.RootElement.GetProperty("tag_name").GetString();
-            var releaseUrl = document.RootElement.GetProperty("html_url").GetString();
-            if (string.IsNullOrWhiteSpace(tagName) || string.IsNullOrWhiteSpace(releaseUrl))
+            var release = AppUpdateReleaseParser.ParseLatestRelease(response);
+            if (release == null)
             {
                 return;
             }
 
             var currentVersion = GetCurrentVersion();
-            if (string.IsNullOrWhiteSpace(currentVersion) || !AppUpdateVersionComparer.IsNewerVersion(tagName, currentVersion))
+            if (string.IsNullOrWhiteSpace(currentVersion) || !AppUpdateVersionComparer.IsNewerVersion(release.TagName, currentVersion))
             {
                 return;
             }
 
+            var updateTargetUrl = string.IsNullOrWhiteSpace(release.AssetUrl)
+                ? release.ReleaseUrl
+                : release.AssetUrl;
+
+            var updateMessage = string.IsNullOrWhiteSpace(release.AssetName)
+                ? $"A newer version ({release.TagName}) is available. You are on {currentVersion}."
+                : $"A newer version ({release.TagName}) is available. You are on {currentVersion}. The app can download {release.AssetName} and hand it to Android for installation.";
+
             _ = MainWindow?.DispatcherQueue.TryEnqueue(() =>
             {
                 mainViewModel.UpdateTitle = "Update available";
-                mainViewModel.UpdateMessage = $"A newer version ({tagName}) is available. You are on {currentVersion}.";
-                mainViewModel.UpdateUrl = releaseUrl;
+                mainViewModel.UpdateMessage = updateMessage;
+                mainViewModel.UpdateUrl = updateTargetUrl;
                 mainViewModel.ShowUpdateDialog = true;
             });
         }

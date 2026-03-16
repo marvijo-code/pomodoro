@@ -3,6 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.System;
 using UnoPomodoro.ViewModels;
+#if __ANDROID__
+using UnoPomodoro.Platforms.Android;
+#endif
 
 namespace UnoPomodoro;
 
@@ -73,6 +76,30 @@ public sealed partial class MainPage : Page
         {
             return;
         }
+
+#if __ANDROID__
+        if (AndroidAppUpdateInstaller.IsApkUrl(_viewModel.UpdateUrl))
+        {
+            try
+            {
+                _viewModel.UpdateMessage = "Downloading update and handing it to Android for installation...";
+                var startedInstall = await AndroidAppUpdateInstaller.DownloadAndInstallAsync(_viewModel.UpdateUrl);
+                if (startedInstall)
+                {
+                    _viewModel.ShowUpdateDialog = false;
+                    return;
+                }
+
+                _viewModel.UpdateMessage = "Allow installs from this app in Android settings, then tap Update again.";
+                return;
+            }
+            catch (Exception ex)
+            {
+                _viewModel.UpdateMessage = $"Update download failed: {ex.Message}";
+                return;
+            }
+        }
+#endif
 
         if (Uri.TryCreate(_viewModel.UpdateUrl, UriKind.Absolute, out var uri))
         {
