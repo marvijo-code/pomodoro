@@ -988,38 +988,69 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task StartSignalVibration_ShouldVibrateRequestedNumberOfTimes()
+    public void StartSignalVibration_ShouldStartIndefiniteVibrationLoop()
     {
         // Arrange
         _mockVibrationService.SetupGet(x => x.IsSupported).Returns(true);
-        _viewModel.SignalRepeatCount = 2;
         _viewModel.SignalDurationMs = 100;
         _viewModel.SignalIntervalMs = 0;
 
         // Act
-        await _viewModel.StartSignalVibrationCommand.ExecuteAsync(null);
+        _viewModel.StartSignalVibrationCommand.Execute(null);
 
         // Assert
-        _mockVibrationService.Verify(x => x.Vibrate(100), Times.Exactly(2));
-        _viewModel.IsSignalToolRunning.Should().BeFalse();
-        _viewModel.SignalToolStatus.Should().Be("Completed 2 vibration pulses.");
+        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(false, true, 100, 0), Times.Once);
+        _viewModel.IsSignalToolRunning.Should().BeTrue();
+        _viewModel.SignalToolStatus.Should().Be("Running vibration every 100 ms until you stop it.");
     }
 
     [Fact]
-    public async Task StartSignalSound_ShouldPlayRequestedNumberOfTimes()
+    public void StartSignalSound_ShouldStartIndefiniteSoundLoop()
     {
         // Arrange
-        _viewModel.SignalRepeatCount = 3;
         _viewModel.SignalDurationMs = 100;
         _viewModel.SignalIntervalMs = 0;
 
         // Act
-        await _viewModel.StartSignalSoundCommand.ExecuteAsync(null);
+        _viewModel.StartSignalSoundCommand.Execute(null);
 
         // Assert
-        _mockSoundService.Verify(x => x.PlayNotificationSound(100), Times.Exactly(3));
+        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(true, false, 100, 0), Times.Once);
+        _viewModel.IsSignalToolRunning.Should().BeTrue();
+        _viewModel.SignalToolStatus.Should().Be("Running sound every 100 ms until you stop it.");
+    }
+
+    [Fact]
+    public void StopSignalTool_ShouldStopRepeatingLoop()
+    {
+        // Arrange
+        _viewModel.IsSignalToolRunning = true;
+
+        // Act
+        _viewModel.StopSignalToolCommand.Execute(null);
+
+        // Assert
+        _mockTimerService.Verify(x => x.StopRepeatingSignalLoop(), Times.Once);
         _viewModel.IsSignalToolRunning.Should().BeFalse();
-        _viewModel.SignalToolStatus.Should().Be("Completed 3 sound pulses.");
+        _viewModel.SignalToolStatus.Should().Be("Stopped.");
+    }
+
+    [Fact]
+    public void HideExtraTools_WhenSignalIsRunning_ShouldNotStopRepeatingLoop()
+    {
+        // Arrange
+        _viewModel.IsSignalToolRunning = true;
+        _viewModel.ActiveExtraTool = "signal";
+        _viewModel.ShowExtraToolPanel = true;
+
+        // Act
+        _viewModel.HideExtraToolsCommand.Execute(null);
+
+        // Assert
+        _mockTimerService.Verify(x => x.StopRepeatingSignalLoop(), Times.Never);
+        _viewModel.IsSignalToolRunning.Should().BeTrue();
+        _viewModel.ShowExtraToolPanel.Should().BeFalse();
+        _viewModel.ActiveExtraTool.Should().BeEmpty();
     }
 
     // ── EditTask tests ───────────────────────────────────────────

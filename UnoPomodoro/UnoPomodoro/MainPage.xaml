@@ -443,21 +443,10 @@
                      FontWeight="SemiBold"
                      Foreground="{StaticResource SecondaryColor}" />
 
-          <StackPanel Spacing="4">
-            <Grid>
-              <TextBlock Text="Count"
-                         FontSize="12"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding SignalRepeatCount}"
-                         FontSize="12"
-                         HorizontalAlignment="Right"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-            </Grid>
-            <Slider Value="{Binding SignalRepeatCount, Mode=TwoWay}"
-                    Minimum="1"
-                    Maximum="10"
-                    StepFrequency="1" />
-          </StackPanel>
+          <TextBlock Text="Runs continuously until you tap Stop. Android keeps it alive in a foreground service so it can continue while the phone is locked."
+                     TextWrapping="Wrap"
+                     FontSize="12"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
 
           <StackPanel Spacing="4">
             <Grid>

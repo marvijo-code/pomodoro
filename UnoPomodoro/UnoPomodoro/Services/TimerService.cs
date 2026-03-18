@@ -11,6 +11,10 @@ namespace UnoPomodoro.Services
         private int _remainingSeconds;
         private bool _isRunning;
         private readonly DispatcherQueue _dispatcherQueue;
+        private CancellationTokenSource? _signalLoopCts;
+        private ISoundService? _registeredSoundService;
+        private IVibrationService? _registeredVibrationService;
+        private bool _isRepeatingSignalLoopRunning;
 
         public event EventHandler<int>? Tick;
         public event EventHandler? TimerCompleted;
@@ -140,6 +144,17 @@ namespace UnoPomodoro.Services
         }
 
         public bool IsRunning => _isRunning;
+        public bool IsRepeatingSignalLoopRunning
+        {
+            get
+            {
+#if __ANDROID__
+                return _isRepeatingSignalLoopRunning || UnoPomodoro.Platforms.Android.SignalForegroundService.IsSignalLoopRunning;
+#else
+                return _isRepeatingSignalLoopRunning;
+#endif
+            }
+        }
 
         public int RemainingSeconds => _remainingSeconds;
 
@@ -206,6 +221,8 @@ namespace UnoPomodoro.Services
             bool vibrationEnabled,
             int vibrationDurationSeconds = 5)
         {
+            _registeredSoundService = soundService;
+            _registeredVibrationService = vibrationService;
             RegisterAlarmServicesPlatform(soundService, vibrationService, soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
         
@@ -213,6 +230,102 @@ namespace UnoPomodoro.Services
         {
             UpdateAlarmSettingsPlatform(soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
+
+        public void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs)
+        {
+            StopRepeatingSignalLoop();
+
+            var sanitizedDurationMs = Math.Clamp(durationMs, 100, 5000);
+            var sanitizedIntervalMs = Math.Clamp(intervalMs, 0, 5000);
+
+            if (!useSound && !useVibration)
+            {
+                return;
+            }
+
+#if __ANDROID__
+            StartPlatformSignalLoop(useSound, useVibration, sanitizedDurationMs, sanitizedIntervalMs);
+            _isRepeatingSignalLoopRunning = true;
+#else
+            if ((useSound && _registeredSoundService == null)
+                || (useVibration && (_registeredVibrationService == null || !_registeredVibrationService.IsSupported)))
+            {
+                return;
+            }
+
+            var tokenSource = new CancellationTokenSource();
+            _signalLoopCts = tokenSource;
+            _isRepeatingSignalLoopRunning = true;
+            _ = RunRepeatingSignalLoopAsync(useSound, useVibration, sanitizedDurationMs, sanitizedIntervalMs, tokenSource);
+#endif
+        }
+
+        public void StopRepeatingSignalLoop()
+        {
+#if __ANDROID__
+            StopPlatformSignalLoop();
+#endif
+
+            var tokenSource = _signalLoopCts;
+            _signalLoopCts = null;
+
+            if (tokenSource != null)
+            {
+                tokenSource.Cancel();
+                tokenSource.Dispose();
+            }
+
+            _registeredSoundService?.StopNotificationSound();
+            _registeredVibrationService?.Cancel();
+            _isRepeatingSignalLoopRunning = false;
+        }
+
+#if !__ANDROID__
+        private async System.Threading.Tasks.Task RunRepeatingSignalLoopAsync(
+            bool useSound,
+            bool useVibration,
+            int durationMs,
+            int intervalMs,
+            CancellationTokenSource tokenSource)
+        {
+            var token = tokenSource.Token;
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    if (useSound)
+                    {
+                        _registeredSoundService?.PlayNotificationSound(durationMs);
+                    }
+
+                    if (useVibration)
+                    {
+                        _registeredVibrationService?.Vibrate(durationMs);
+                    }
+
+                    await System.Threading.Tasks.Task.Delay(durationMs, token);
+
+                    if (intervalMs > 0)
+                    {
+                        await System.Threading.Tasks.Task.Delay(intervalMs, token);
+                    }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // expected when stopping the signal loop
+            }
+            finally
+            {
+                if (ReferenceEquals(_signalLoopCts, tokenSource))
+                {
+                    _signalLoopCts = null;
+                    _isRepeatingSignalLoopRunning = false;
+                }
+            }
+        }
+#endif
         
         partial void RegisterAlarmServicesPlatform(
             ISoundService? soundService,
@@ -221,5 +334,9 @@ namespace UnoPomodoro.Services
             bool vibrationEnabled,
             int vibrationDurationSeconds);
         partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds);
+#if __ANDROID__
+        partial void StartPlatformSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs);
+        partial void StopPlatformSignalLoop();
+#endif
     }
 }

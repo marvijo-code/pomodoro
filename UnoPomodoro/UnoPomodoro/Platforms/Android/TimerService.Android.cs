@@ -61,5 +61,17 @@ namespace UnoPomodoro.Services
         {
             TimerForegroundService.UpdateAlarmSettings(soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
+
+        partial void StartPlatformSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs)
+        {
+            var context = Android.App.Application.Context;
+            SignalForegroundService.Start(context, useSound, useVibration, durationMs, intervalMs);
+        }
+
+        partial void StopPlatformSignalLoop()
+        {
+            var context = Android.App.Application.Context;
+            SignalForegroundService.Stop(context);
+        }
     }
 }

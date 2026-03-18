@@ -135,9 +135,6 @@ public partial class MainViewModel : ObservableObject
     private bool _isCountdownRunning;
 
     [ObservableProperty]
-    private int _signalRepeatCount = 3;
-
-    [ObservableProperty]
     private int _signalDurationMs = 500;
 
     [ObservableProperty]
@@ -428,7 +425,6 @@ public partial class MainViewModel : ObservableObject
     private System.Threading.CancellationTokenSource? _clockCts;
     private System.Threading.CancellationTokenSource? _stopwatchCts;
     private System.Threading.CancellationTokenSource? _countdownCts;
-    private System.Threading.CancellationTokenSource? _signalToolCts;
 
     public int TotalDuration => _times.TryGetValue(Mode, out var duration) ? duration : 25 * 60;
     public string StopwatchDisplay => FormatTime(StopwatchSeconds);
@@ -493,6 +489,12 @@ public partial class MainViewModel : ObservableObject
         CountdownRemainingSeconds = Math.Max(1, CountdownDurationMinutes) * 60;
 
         await RestoreAppRuntimeStateAsync();
+
+        IsSignalToolRunning = _timerService.IsRepeatingSignalLoopRunning;
+        if (IsSignalToolRunning)
+        {
+            SignalToolStatus = "Running until you stop it.";
+        }
 
         StartClockTicker();
 
@@ -960,15 +962,6 @@ public partial class MainViewModel : ObservableObject
         {
             CountdownRemainingSeconds = sanitized * 60;
             OnPropertyChanged(nameof(CountdownDisplay));
-        }
-    }
-
-    partial void OnSignalRepeatCountChanged(int value)
-    {
-        var sanitized = Math.Clamp(value, 1, 10);
-        if (sanitized != value)
-        {
-            SignalRepeatCount = sanitized;
         }
     }
 
@@ -2176,15 +2169,35 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private Task StartSignalVibration()
+    private void StartSignalVibration()
     {
-        return StartSignalToolAsync(useSound: false);
+        if (IsSignalToolRunning)
+        {
+            return;
+        }
+
+        if (!_vibrationService.IsSupported)
+        {
+            SignalToolStatus = "Vibration not supported on this device.";
+            return;
+        }
+
+        _timerService.StartRepeatingSignalLoop(useSound: false, useVibration: true, SignalDurationMs, SignalIntervalMs);
+        IsSignalToolRunning = true;
+        SignalToolStatus = $"Running vibration every {SignalDurationMs + SignalIntervalMs} ms until you stop it.";
     }
 
     [RelayCommand]
-    private Task StartSignalSound()
+    private void StartSignalSound()
     {
-        return StartSignalToolAsync(useSound: true);
+        if (IsSignalToolRunning)
+        {
+            return;
+        }
+
+        _timerService.StartRepeatingSignalLoop(useSound: true, useVibration: false, SignalDurationMs, SignalIntervalMs);
+        IsSignalToolRunning = true;
+        SignalToolStatus = $"Running sound every {SignalDurationMs + SignalIntervalMs} ms until you stop it.";
     }
 
     [RelayCommand]
@@ -2193,88 +2206,10 @@ public partial class MainViewModel : ObservableObject
         StopSignalToolPlayback();
     }
 
-    private async Task StartSignalToolAsync(bool useSound)
-    {
-        if (IsSignalToolRunning)
-        {
-            return;
-        }
-
-        if (!useSound && !_vibrationService.IsSupported)
-        {
-            SignalToolStatus = "Vibration not supported on this device.";
-            return;
-        }
-
-        var repeatCount = SignalRepeatCount;
-        var durationMs = SignalDurationMs;
-        var intervalMs = SignalIntervalMs;
-        var actionLabel = useSound ? "sound" : "vibration";
-        var tokenSource = new CancellationTokenSource();
-        var token = tokenSource.Token;
-
-        _signalToolCts = tokenSource;
-        IsSignalToolRunning = true;
-
-        try
-        {
-            for (var index = 0; index < repeatCount; index++)
-            {
-                SignalToolStatus = $"Running {actionLabel} {index + 1}/{repeatCount}";
-
-                if (useSound)
-                {
-                    _soundService.PlayNotificationSound(durationMs);
-                }
-                else
-                {
-                    _vibrationService.Vibrate(durationMs);
-                }
-
-                await Task.Delay(durationMs, token);
-
-                if (index < repeatCount - 1 && intervalMs > 0)
-                {
-                    await Task.Delay(intervalMs, token);
-                }
-            }
-
-            SignalToolStatus = $"Completed {repeatCount} {actionLabel} pulse{(repeatCount == 1 ? "" : "s")}.";
-        }
-        catch (TaskCanceledException)
-        {
-            if (ReferenceEquals(_signalToolCts, tokenSource))
-            {
-                SignalToolStatus = "Stopped.";
-            }
-        }
-        finally
-        {
-            if (ReferenceEquals(_signalToolCts, tokenSource))
-            {
-                tokenSource.Dispose();
-                _signalToolCts = null;
-                IsSignalToolRunning = false;
-                _soundService.StopNotificationSound();
-                _vibrationService.Cancel();
-            }
-        }
-    }
-
     private void StopSignalToolPlayback(bool resetStatus = false)
     {
-        var tokenSource = _signalToolCts;
-        _signalToolCts = null;
-
-        if (tokenSource != null)
-        {
-            tokenSource.Cancel();
-            tokenSource.Dispose();
-        }
-
+        _timerService.StopRepeatingSignalLoop();
         IsSignalToolRunning = false;
-        _soundService.StopNotificationSound();
-        _vibrationService.Cancel();
         SignalToolStatus = resetStatus ? "Ready" : "Stopped.";
     }
 
@@ -2366,7 +2301,11 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void SelectSignalTool()
     {
-        SignalToolStatus = "Ready";
+        IsSignalToolRunning = _timerService.IsRepeatingSignalLoopRunning;
+        if (!IsSignalToolRunning)
+        {
+            SignalToolStatus = "Ready";
+        }
         ActiveExtraTool = "signal";
         ShowExtraToolPanel = true;
         ShowExtraToolPicker = false;
@@ -2376,7 +2315,6 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void HideExtraTools()
     {
-        StopSignalToolPlayback(resetStatus: true);
         ShowExtraToolPicker = false;
         ShowExtraToolPanel = false;
         ActiveExtraTool = "";

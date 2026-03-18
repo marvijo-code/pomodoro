@@ -55,4 +55,21 @@ public interface ITimerService
     /// No-op on platforms without a background service.
     /// </summary>
     void UpdateAlarmSettings(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds = 5);
+
+    /// <summary>
+    /// Starts a repeating signal loop that runs until explicitly stopped.
+    /// Platform implementations may move this into a foreground/background service
+    /// so it can continue while the app is not in the foreground or the phone is locked.
+    /// </summary>
+    void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs);
+
+    /// <summary>
+    /// Stops any active repeating signal loop.
+    /// </summary>
+    void StopRepeatingSignalLoop();
+
+    /// <summary>
+    /// Whether a repeating signal loop is currently active.
+    /// </summary>
+    bool IsRepeatingSignalLoopRunning { get; }
 }
