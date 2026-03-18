@@ -970,6 +970,58 @@ public class MainViewModelTests
         _viewModel.CanAddMinute.Should().BeFalse();
     }
 
+    // ── Extra tool tests ────────────────────────────────────────
+
+    [Fact]
+    public void SelectSignalTool_ShouldShowSignalToolPanel()
+    {
+        // Act
+        _viewModel.OpenExtraToolPickerCommand.Execute(null);
+        _viewModel.SelectSignalToolCommand.Execute(null);
+
+        // Assert
+        _viewModel.ShowExtraToolPicker.Should().BeFalse();
+        _viewModel.ShowExtraToolPanel.Should().BeTrue();
+        _viewModel.ActiveExtraTool.Should().Be("signal");
+        _viewModel.IsSignalToolVisible.Should().BeTrue();
+        _viewModel.SignalToolStatus.Should().Be("Ready");
+    }
+
+    [Fact]
+    public async Task StartSignalVibration_ShouldVibrateRequestedNumberOfTimes()
+    {
+        // Arrange
+        _mockVibrationService.SetupGet(x => x.IsSupported).Returns(true);
+        _viewModel.SignalRepeatCount = 2;
+        _viewModel.SignalDurationMs = 100;
+        _viewModel.SignalIntervalMs = 0;
+
+        // Act
+        await _viewModel.StartSignalVibrationCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockVibrationService.Verify(x => x.Vibrate(100), Times.Exactly(2));
+        _viewModel.IsSignalToolRunning.Should().BeFalse();
+        _viewModel.SignalToolStatus.Should().Be("Completed 2 vibration pulses.");
+    }
+
+    [Fact]
+    public async Task StartSignalSound_ShouldPlayRequestedNumberOfTimes()
+    {
+        // Arrange
+        _viewModel.SignalRepeatCount = 3;
+        _viewModel.SignalDurationMs = 100;
+        _viewModel.SignalIntervalMs = 0;
+
+        // Act
+        await _viewModel.StartSignalSoundCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockSoundService.Verify(x => x.PlayNotificationSound(100), Times.Exactly(3));
+        _viewModel.IsSignalToolRunning.Should().BeFalse();
+        _viewModel.SignalToolStatus.Should().Be("Completed 3 sound pulses.");
+    }
+
     // ── EditTask tests ───────────────────────────────────────────
 
     [Fact]

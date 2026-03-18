@@ -431,6 +431,84 @@
                     Padding="10,6" />
           </StackPanel>
         </StackPanel>
+
+        <!-- Signal -->
+        <StackPanel Spacing="8"
+                    Visibility="{Binding IsSignalToolVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+          <TextBlock Text="Signal"
+                     FontSize="12"
+                     Foreground="{StaticResource OnSurfaceVariantColor}" />
+          <TextBlock Text="{Binding SignalToolStatus}"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource SecondaryColor}" />
+
+          <StackPanel Spacing="4">
+            <Grid>
+              <TextBlock Text="Count"
+                         FontSize="12"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding SignalRepeatCount}"
+                         FontSize="12"
+                         HorizontalAlignment="Right"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+            </Grid>
+            <Slider Value="{Binding SignalRepeatCount, Mode=TwoWay}"
+                    Minimum="1"
+                    Maximum="10"
+                    StepFrequency="1" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <Grid>
+              <TextBlock Text="Duration (ms)"
+                         FontSize="12"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding SignalDurationMs}"
+                         FontSize="12"
+                         HorizontalAlignment="Right"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+            </Grid>
+            <Slider Value="{Binding SignalDurationMs, Mode=TwoWay}"
+                    Minimum="100"
+                    Maximum="5000"
+                    StepFrequency="100" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <Grid>
+              <TextBlock Text="Gap (ms)"
+                         FontSize="12"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+              <TextBlock Text="{Binding SignalIntervalMs}"
+                         FontSize="12"
+                         HorizontalAlignment="Right"
+                         Foreground="{StaticResource OnSurfaceVariantColor}" />
+            </Grid>
+            <Slider Value="{Binding SignalIntervalMs, Mode=TwoWay}"
+                    Minimum="0"
+                    Maximum="5000"
+                    StepFrequency="100" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Content="Vibrate"
+                    Command="{Binding StartSignalVibrationCommand}"
+                    IsEnabled="{Binding CanStartSignalTool}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+            <Button Content="Sound"
+                    Command="{Binding StartSignalSoundCommand}"
+                    IsEnabled="{Binding CanStartSignalTool}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+            <Button Content="Stop"
+                    Command="{Binding StopSignalToolCommand}"
+                    IsEnabled="{Binding CanStopSignalTool}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="10,6" />
+          </StackPanel>
+        </StackPanel>
       </Grid>
     </Border>
 
@@ -1644,6 +1722,10 @@
 
           <Button Content="Countdown"
                   Command="{Binding SelectCountdownToolCommand}"
+                  Style="{StaticResource SecondaryButtonStyle}" />
+
+          <Button Content="Signal"
+                  Command="{Binding SelectSignalToolCommand}"
                   Style="{StaticResource SecondaryButtonStyle}" />
 
           <Button Content="Hide Extra Tools"

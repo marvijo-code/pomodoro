@@ -113,7 +113,17 @@ public class SoundService : ISoundService, IDisposable
 
     public void PlayNotificationSound()
     {
-        System.Diagnostics.Debug.WriteLine($"PlayNotificationSound called. Volume={_volume}, Duration={_duration}");
+        PlayNotificationSoundInternal(TimeSpan.FromSeconds(_duration));
+    }
+
+    public void PlayNotificationSound(int durationMs)
+    {
+        PlayNotificationSoundInternal(TimeSpan.FromMilliseconds(Math.Max(50, durationMs)));
+    }
+
+    private void PlayNotificationSoundInternal(TimeSpan duration)
+    {
+        System.Diagnostics.Debug.WriteLine($"PlayNotificationSound called. Volume={_volume}, DurationMs={duration.TotalMilliseconds}");
         
 #if __ANDROID__
         if (_mediaPlayer == null) 
@@ -140,7 +150,7 @@ public class SoundService : ISoundService, IDisposable
             
             System.Diagnostics.Debug.WriteLine($"MediaPlayer started. IsPlaying={_mediaPlayer.IsPlaying}");
 
-            Task.Delay(TimeSpan.FromSeconds(_duration), token).ContinueWith(t =>
+            Task.Delay(duration, token).ContinueWith(t =>
             {
                 if (!t.IsCanceled)
                 {
@@ -166,7 +176,7 @@ public class SoundService : ISoundService, IDisposable
 
             _mediaPlayer.Play();
 
-            Task.Delay(TimeSpan.FromSeconds(_duration), token).ContinueWith(t =>
+            Task.Delay(duration, token).ContinueWith(t =>
             {
                 if (!t.IsCanceled)
                 {
