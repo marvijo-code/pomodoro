@@ -40,6 +40,7 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
         // Sync timer with wall clock when app resumes
         // This handles cases where power saving mode may have delayed timer ticks
         TimerResyncHelper.SyncTimer();
+        App.Instance?.RequestAppUpdateCheck();
     }
     
     private void RequestNotificationPermission()

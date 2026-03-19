@@ -9,14 +9,19 @@ using UnoPomodoro.ViewModels;
 using SQLite;
 using UnoPomodoro.Data.Models;
 using System.Collections.Generic;
-using System.Linq;
+#if __ANDROID__
+using UnoPomodoro.Platforms.Android;
+#endif
 
 namespace UnoPomodoro;
 
 public partial class App : Application
 {
     private static readonly HttpClient UpdateHttpClient = new();
+    private static readonly TimeSpan AppUpdateCheckThrottle = TimeSpan.FromMinutes(15);
     public static App? Instance => Current as App;
+    private MainViewModel? _mainViewModel;
+    private DateTimeOffset _lastAppUpdateCheckUtc = DateTimeOffset.MinValue;
 
     /// <summary>
     /// Initializes the singleton application object. This is the first line of authored code
@@ -67,6 +72,7 @@ public partial class App : Application
 
         // Create MainViewModel with required services
         var mainViewModel = new MainViewModel(timerService, sessionRepository, taskRepository, soundService, notificationService, statisticsService, vibrationService, settingsService);
+        _mainViewModel = mainViewModel;
 
         // Register alarm services with the timer so the platform's background service
         // can trigger vibration and sound directly (works even when the phone is locked).
@@ -98,7 +104,7 @@ public partial class App : Application
         // Ensure the current window is active
         MainWindow.Activate();
 
-        _ = CheckForAppUpdatesAsync(mainViewModel);
+        RequestAppUpdateCheck(force: true);
     }
 
     private static void EnsureTaskTableSchema(SQLiteConnection connection)
@@ -213,10 +219,32 @@ public partial class App : Application
 #endif
     }
 
-    private async Task CheckForAppUpdatesAsync(MainViewModel mainViewModel)
+    public void RequestAppUpdateCheck(bool force = false)
+    {
+        if (_mainViewModel == null)
+        {
+            return;
+        }
+
+        _ = CheckForAppUpdatesAsync(_mainViewModel, force);
+    }
+
+    private async Task CheckForAppUpdatesAsync(MainViewModel mainViewModel, bool force = false)
     {
         try
         {
+            if (!force && DateTimeOffset.UtcNow - _lastAppUpdateCheckUtc < AppUpdateCheckThrottle)
+            {
+                return;
+            }
+
+            if (mainViewModel.ShowUpdateDialog)
+            {
+                return;
+            }
+
+            _lastAppUpdateCheckUtc = DateTimeOffset.UtcNow;
+
             if (!UpdateHttpClient.DefaultRequestHeaders.UserAgent.Any())
             {
                 UpdateHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PomodoroVijoApp/1.0");
@@ -235,13 +263,21 @@ public partial class App : Application
                 return;
             }
 
-            var updateTargetUrl = string.IsNullOrWhiteSpace(release.AssetUrl)
-                ? release.ReleaseUrl
-                : release.AssetUrl;
+            var canUseDirectApkUpdate = !string.IsNullOrWhiteSpace(release.AssetUrl);
+            var directUpdateUnsupportedReason = string.Empty;
 
-            var updateMessage = string.IsNullOrWhiteSpace(release.AssetName)
-                ? $"A newer version ({release.TagName}) is available. You are on {currentVersion}."
-                : $"A newer version ({release.TagName}) is available. You are on {currentVersion}. The app can download {release.AssetName} and hand it to Android for installation.";
+#if __ANDROID__
+            if (canUseDirectApkUpdate)
+            {
+                canUseDirectApkUpdate = AndroidAppUpdateInstaller.CanAttemptInPlaceUpdate(out directUpdateUnsupportedReason);
+            }
+#endif
+
+            var updateTargetUrl = canUseDirectApkUpdate
+                ? release.AssetUrl
+                : release.ReleaseUrl;
+
+            var updateMessage = BuildUpdateMessage(release, currentVersion, canUseDirectApkUpdate, directUpdateUnsupportedReason);
 
             _ = MainWindow?.DispatcherQueue.TryEnqueue(() =>
             {
@@ -271,5 +307,29 @@ public partial class App : Application
 #else
         return string.Empty;
 #endif
+    }
+
+    private static string BuildUpdateMessage(
+        AppUpdateRelease release,
+        string currentVersion,
+        bool canUseDirectApkUpdate,
+        string directUpdateUnsupportedReason)
+    {
+        if (string.IsNullOrWhiteSpace(release.AssetName))
+        {
+            return $"A newer version ({release.TagName}) is available. You are on {currentVersion}.";
+        }
+
+        if (canUseDirectApkUpdate)
+        {
+            return $"A newer version ({release.TagName}) is available. You are on {currentVersion}. The app can download {release.AssetName} and hand it to Android for installation.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(directUpdateUnsupportedReason))
+        {
+            return $"A newer version ({release.TagName}) is available. You are on {currentVersion}. {directUpdateUnsupportedReason}";
+        }
+
+        return $"A newer version ({release.TagName}) is available. You are on {currentVersion}. Open the release page to install {release.AssetName}.";
     }
 }
