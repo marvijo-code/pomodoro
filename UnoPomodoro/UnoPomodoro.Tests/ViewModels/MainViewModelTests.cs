@@ -999,7 +999,7 @@ public class MainViewModelTests
         _viewModel.StartSignalVibrationCommand.Execute(null);
 
         // Assert
-        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(false, true, 100, 0), Times.Once);
+        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(false, true, 100, 0, 100), Times.Once);
         _viewModel.IsSignalToolRunning.Should().BeTrue();
         _viewModel.SignalToolStatus.Should().Be("Running vibration every 100 ms until you stop it.");
     }
@@ -1010,14 +1010,26 @@ public class MainViewModelTests
         // Arrange
         _viewModel.SignalDurationMs = 100;
         _viewModel.SignalIntervalMs = 0;
+        _viewModel.SoundVolume = 42;
 
         // Act
         _viewModel.StartSignalSoundCommand.Execute(null);
 
         // Assert
-        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(true, false, 100, 0), Times.Once);
+        _mockTimerService.Verify(x => x.StartRepeatingSignalLoop(true, false, 100, 0, 42), Times.Once);
         _viewModel.IsSignalToolRunning.Should().BeTrue();
         _viewModel.SignalToolStatus.Should().Be("Running sound every 100 ms until you stop it.");
+    }
+
+    [Fact]
+    public void SignalInterval_ShouldClampToFiveMinutes()
+    {
+        // Act
+        _viewModel.SignalIntervalMs = 600_000;
+
+        // Assert
+        _viewModel.SignalIntervalMs.Should().Be(300_000);
+        _viewModel.SignalIntervalDisplay.Should().Be("5 min");
     }
 
     [Fact]

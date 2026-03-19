@@ -15,6 +15,9 @@ namespace UnoPomodoro.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private const int MaxSignalDurationMs = 5_000;
+    private const int MaxSignalIntervalMs = 5 * 60 * 1_000;
+
     private readonly ITimerService _timerService;
     private readonly ISessionRepository _sessionRepository;
     private readonly ITaskRepository _taskRepository;
@@ -135,9 +138,11 @@ public partial class MainViewModel : ObservableObject
     private bool _isCountdownRunning;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SignalDurationDisplay))]
     private int _signalDurationMs = 500;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SignalIntervalDisplay))]
     private int _signalIntervalMs = 300;
 
     [ObservableProperty]
@@ -434,6 +439,8 @@ public partial class MainViewModel : ObservableObject
     public bool IsSignalToolVisible => ShowExtraToolPanel && ActiveExtraTool == "signal";
     public bool CanStartSignalTool => !IsSignalToolRunning;
     public bool CanStopSignalTool => IsSignalToolRunning;
+    public string SignalDurationDisplay => FormatSignalMilliseconds(SignalDurationMs);
+    public string SignalIntervalDisplay => FormatSignalMilliseconds(SignalIntervalMs);
 
     public bool CanAddMinute => TimeLeft < 180; // Less than 3 minutes
     public string SessionGoalProgressText =>
@@ -967,7 +974,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSignalDurationMsChanged(int value)
     {
-        var sanitized = Math.Clamp(value, 100, 5000);
+        var sanitized = Math.Clamp(value, 100, MaxSignalDurationMs);
         if (sanitized != value)
         {
             SignalDurationMs = sanitized;
@@ -976,7 +983,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSignalIntervalMsChanged(int value)
     {
-        var sanitized = Math.Clamp(value, 0, 5000);
+        var sanitized = Math.Clamp(value, 0, MaxSignalIntervalMs);
         if (sanitized != value)
         {
             SignalIntervalMs = sanitized;
@@ -2182,9 +2189,9 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        _timerService.StartRepeatingSignalLoop(useSound: false, useVibration: true, SignalDurationMs, SignalIntervalMs);
+        _timerService.StartRepeatingSignalLoop(useSound: false, useVibration: true, SignalDurationMs, SignalIntervalMs, SoundVolume);
         IsSignalToolRunning = true;
-        SignalToolStatus = $"Running vibration every {SignalDurationMs + SignalIntervalMs} ms until you stop it.";
+        SignalToolStatus = $"Running vibration every {FormatSignalMilliseconds(SignalDurationMs + SignalIntervalMs)} until you stop it.";
     }
 
     [RelayCommand]
@@ -2195,9 +2202,9 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        _timerService.StartRepeatingSignalLoop(useSound: true, useVibration: false, SignalDurationMs, SignalIntervalMs);
+        _timerService.StartRepeatingSignalLoop(useSound: true, useVibration: false, SignalDurationMs, SignalIntervalMs, SoundVolume);
         IsSignalToolRunning = true;
-        SignalToolStatus = $"Running sound every {SignalDurationMs + SignalIntervalMs} ms until you stop it.";
+        SignalToolStatus = $"Running sound every {FormatSignalMilliseconds(SignalDurationMs + SignalIntervalMs)} until you stop it.";
     }
 
     [RelayCommand]
@@ -2211,6 +2218,34 @@ public partial class MainViewModel : ObservableObject
         _timerService.StopRepeatingSignalLoop();
         IsSignalToolRunning = false;
         SignalToolStatus = resetStatus ? "Ready" : "Stopped.";
+    }
+
+    private static string FormatSignalMilliseconds(int milliseconds)
+    {
+        if (milliseconds < 1000)
+        {
+            return $"{milliseconds} ms";
+        }
+
+        var duration = TimeSpan.FromMilliseconds(milliseconds);
+        if (duration.TotalMinutes >= 1)
+        {
+            if (duration.Seconds == 0 && duration.Milliseconds == 0)
+            {
+                return $"{(int)duration.TotalMinutes} min";
+            }
+
+            if (duration.Milliseconds == 0)
+            {
+                return $"{(int)duration.TotalMinutes} min {duration.Seconds} s";
+            }
+
+            return $"{duration.TotalMinutes:0.#} min";
+        }
+
+        return milliseconds % 1000 == 0
+            ? $"{duration.TotalSeconds:0} s"
+            : $"{duration.TotalSeconds:0.#} s";
     }
 
     // ═════════════════════════════════════════════════════════════

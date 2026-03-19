@@ -61,7 +61,7 @@ public interface ITimerService
     /// Platform implementations may move this into a foreground/background service
     /// so it can continue while the app is not in the foreground or the phone is locked.
     /// </summary>
-    void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs);
+    void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs, double soundVolumePercent = 100);
 
     /// <summary>
     /// Stops any active repeating signal loop.

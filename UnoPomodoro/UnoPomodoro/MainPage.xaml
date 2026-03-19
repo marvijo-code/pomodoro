@@ -448,39 +448,54 @@
                      FontSize="12"
                      Foreground="{StaticResource OnSurfaceVariantColor}" />
 
-          <StackPanel Spacing="4">
-            <Grid>
-              <TextBlock Text="Duration (ms)"
-                         FontSize="12"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding SignalDurationMs}"
-                         FontSize="12"
-                         HorizontalAlignment="Right"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-            </Grid>
-            <Slider Value="{Binding SignalDurationMs, Mode=TwoWay}"
-                    Minimum="100"
-                    Maximum="5000"
-                    StepFrequency="100" />
-          </StackPanel>
+            <StackPanel Spacing="4">
+              <Grid>
+                <TextBlock Text="Duration"
+                           FontSize="12"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+                <TextBlock Text="{Binding SignalDurationDisplay}"
+                           FontSize="12"
+                           HorizontalAlignment="Right"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+              </Grid>
+              <Slider Value="{Binding SignalDurationMs, Mode=TwoWay}"
+                      Minimum="100"
+                      Maximum="5000"
+                      StepFrequency="100" />
+            </StackPanel>
 
-          <StackPanel Spacing="4">
-            <Grid>
-              <TextBlock Text="Gap (ms)"
-                         FontSize="12"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-              <TextBlock Text="{Binding SignalIntervalMs}"
-                         FontSize="12"
-                         HorizontalAlignment="Right"
-                         Foreground="{StaticResource OnSurfaceVariantColor}" />
-            </Grid>
-            <Slider Value="{Binding SignalIntervalMs, Mode=TwoWay}"
-                    Minimum="0"
-                    Maximum="5000"
-                    StepFrequency="100" />
-          </StackPanel>
+            <StackPanel Spacing="4">
+              <Grid>
+                <TextBlock Text="Gap"
+                           FontSize="12"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+                <TextBlock Text="{Binding SignalIntervalDisplay}"
+                           FontSize="12"
+                           HorizontalAlignment="Right"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+              </Grid>
+              <Slider Value="{Binding SignalIntervalMs, Mode=TwoWay}"
+                      Minimum="0"
+                      Maximum="300000"
+                      StepFrequency="1000" />
+            </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Spacing="6">
+            <StackPanel Spacing="4">
+              <Grid>
+                <TextBlock Text="Sound Volume"
+                           FontSize="12"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+                <TextBlock Text="{Binding SoundVolume}"
+                           FontSize="12"
+                           HorizontalAlignment="Right"
+                           Foreground="{StaticResource OnSurfaceVariantColor}" />
+              </Grid>
+              <Slider Value="{Binding SoundVolume, Mode=TwoWay}"
+                      Minimum="0"
+                      Maximum="100" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
             <Button Content="Vibrate"
                     Command="{Binding StartSignalVibrationCommand}"
                     IsEnabled="{Binding CanStartSignalTool}"
@@ -1579,7 +1594,7 @@
 
     <!-- App Update Overlay -->
     <Border Grid.Row="0" 
-            Grid.RowSpan="5"
+            Grid.RowSpan="6"
             Background="#AA000000"
             Visibility="{Binding ShowUpdateDialog, Converter={StaticResource BoolToVisibilityConverter}}"
             Canvas.ZIndex="24">

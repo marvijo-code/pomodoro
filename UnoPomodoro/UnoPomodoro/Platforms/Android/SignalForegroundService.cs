@@ -15,6 +15,8 @@ namespace UnoPomodoro.Platforms.Android;
     ForegroundServiceType = global::Android.Content.PM.ForegroundService.TypeSpecialUse)]
 public sealed class SignalForegroundService : Service
 {
+    private const int MaxSignalDurationMs = 5_000;
+    private const int MaxSignalIntervalMs = 5 * 60 * 1_000;
     private const string ChannelId = "signal_loop";
     private const string ChannelName = "Signal Loop";
     private const int NotificationId = 1004;
@@ -24,6 +26,7 @@ public sealed class SignalForegroundService : Service
     private const string ExtraUseVibration = "useVibration";
     private const string ExtraDurationMs = "durationMs";
     private const string ExtraIntervalMs = "intervalMs";
+    private const string ExtraSoundVolumePercent = "soundVolumePercent";
 
     private CancellationTokenSource? _signalLoopCts;
     private PowerManager.WakeLock? _wakeLock;
@@ -33,10 +36,11 @@ public sealed class SignalForegroundService : Service
     private bool _useVibration;
     private int _durationMs = 500;
     private int _intervalMs = 300;
+    private double _soundVolumePercent = 100;
 
     public static bool IsSignalLoopRunning { get; private set; }
 
-    public static void Start(Context context, bool useSound, bool useVibration, int durationMs, int intervalMs)
+    public static void Start(Context context, bool useSound, bool useVibration, int durationMs, int intervalMs, double soundVolumePercent)
     {
         var intent = new Intent(context, typeof(SignalForegroundService));
         intent.SetAction(StartAction);
@@ -44,6 +48,7 @@ public sealed class SignalForegroundService : Service
         intent.PutExtra(ExtraUseVibration, useVibration);
         intent.PutExtra(ExtraDurationMs, durationMs);
         intent.PutExtra(ExtraIntervalMs, intervalMs);
+        intent.PutExtra(ExtraSoundVolumePercent, soundVolumePercent);
 
         if (OperatingSystem.IsAndroidVersionAtLeast(26))
         {
@@ -58,8 +63,7 @@ public sealed class SignalForegroundService : Service
     public static void Stop(Context context)
     {
         var intent = new Intent(context, typeof(SignalForegroundService));
-        intent.SetAction(StopAction);
-        context.StartService(intent);
+        context.StopService(intent);
     }
 
     public override void OnCreate()
@@ -88,8 +92,14 @@ public sealed class SignalForegroundService : Service
 
         _useSound = intent?.GetBooleanExtra(ExtraUseSound, false) ?? _useSound;
         _useVibration = intent?.GetBooleanExtra(ExtraUseVibration, false) ?? _useVibration;
-        _durationMs = Math.Clamp(intent?.GetIntExtra(ExtraDurationMs, _durationMs) ?? _durationMs, 100, 5000);
-        _intervalMs = Math.Clamp(intent?.GetIntExtra(ExtraIntervalMs, _intervalMs) ?? _intervalMs, 0, 5000);
+        _durationMs = Math.Clamp(intent?.GetIntExtra(ExtraDurationMs, _durationMs) ?? _durationMs, 100, MaxSignalDurationMs);
+        _intervalMs = Math.Clamp(intent?.GetIntExtra(ExtraIntervalMs, _intervalMs) ?? _intervalMs, 0, MaxSignalIntervalMs);
+        _soundVolumePercent = Math.Clamp(intent?.GetDoubleExtra(ExtraSoundVolumePercent, _soundVolumePercent) ?? _soundVolumePercent, 0, 100);
+
+        if (_soundService != null)
+        {
+            _soundService.Volume = _soundVolumePercent / 100.0;
+        }
 
         AcquireWakeLock();
         StartForegroundNotification();
@@ -230,7 +240,35 @@ public sealed class SignalForegroundService : Service
                 ? "sound"
                 : "vibration";
 
-        return $"Repeats {signalKind} for {_durationMs} ms with {_intervalMs} ms gap.";
+        return $"Repeats {signalKind} for {FormatMilliseconds(_durationMs)} with {FormatMilliseconds(_intervalMs)} gap.";
+    }
+
+    private static string FormatMilliseconds(int milliseconds)
+    {
+        if (milliseconds < 1000)
+        {
+            return $"{milliseconds} ms";
+        }
+
+        var duration = TimeSpan.FromMilliseconds(milliseconds);
+        if (duration.TotalMinutes >= 1)
+        {
+            if (duration.Seconds == 0 && duration.Milliseconds == 0)
+            {
+                return $"{(int)duration.TotalMinutes} min";
+            }
+
+            if (duration.Milliseconds == 0)
+            {
+                return $"{(int)duration.TotalMinutes} min {duration.Seconds} s";
+            }
+
+            return $"{duration.TotalMinutes:0.#} min";
+        }
+
+        return milliseconds % 1000 == 0
+            ? $"{duration.TotalSeconds:0} s"
+            : $"{duration.TotalSeconds:0.#} s";
     }
 
     private PendingIntent CreateStopPendingIntent()

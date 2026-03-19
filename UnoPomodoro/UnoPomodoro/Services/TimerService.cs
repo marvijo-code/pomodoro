@@ -6,6 +6,9 @@ namespace UnoPomodoro.Services
 {
     public partial class TimerService : ITimerService
     {
+        private const int MaxSignalDurationMs = 5_000;
+        private const int MaxSignalIntervalMs = 5 * 60 * 1_000;
+
         private Timer? _timer;
         private DateTime _targetEndTime;
         private int _remainingSeconds;
@@ -231,12 +234,11 @@ namespace UnoPomodoro.Services
             UpdateAlarmSettingsPlatform(soundEnabled, vibrationEnabled, vibrationDurationSeconds);
         }
 
-        public void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs)
+        public void StartRepeatingSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs, double soundVolumePercent = 100)
         {
-            StopRepeatingSignalLoop();
-
-            var sanitizedDurationMs = Math.Clamp(durationMs, 100, 5000);
-            var sanitizedIntervalMs = Math.Clamp(intervalMs, 0, 5000);
+            var sanitizedDurationMs = Math.Clamp(durationMs, 100, MaxSignalDurationMs);
+            var sanitizedIntervalMs = Math.Clamp(intervalMs, 0, MaxSignalIntervalMs);
+            var sanitizedSoundVolume = Math.Clamp(soundVolumePercent, 0, 100);
 
             if (!useSound && !useVibration)
             {
@@ -244,13 +246,23 @@ namespace UnoPomodoro.Services
             }
 
 #if __ANDROID__
-            StartPlatformSignalLoop(useSound, useVibration, sanitizedDurationMs, sanitizedIntervalMs);
+            // The Android foreground service updates its own active loop when it
+            // receives a fresh start intent, so sending a stop first only creates
+            // a race where the service can be torn down before startForeground().
+            StartPlatformSignalLoop(useSound, useVibration, sanitizedDurationMs, sanitizedIntervalMs, sanitizedSoundVolume);
             _isRepeatingSignalLoopRunning = true;
 #else
+            StopRepeatingSignalLoop();
+
             if ((useSound && _registeredSoundService == null)
                 || (useVibration && (_registeredVibrationService == null || !_registeredVibrationService.IsSupported)))
             {
                 return;
+            }
+
+            if (useSound && _registeredSoundService != null)
+            {
+                _registeredSoundService.Volume = sanitizedSoundVolume / 100.0;
             }
 
             var tokenSource = new CancellationTokenSource();
@@ -263,7 +275,10 @@ namespace UnoPomodoro.Services
         public void StopRepeatingSignalLoop()
         {
 #if __ANDROID__
-            StopPlatformSignalLoop();
+            if (_isRepeatingSignalLoopRunning || UnoPomodoro.Platforms.Android.SignalForegroundService.IsSignalLoopRunning)
+            {
+                StopPlatformSignalLoop();
+            }
 #endif
 
             var tokenSource = _signalLoopCts;
@@ -335,7 +350,7 @@ namespace UnoPomodoro.Services
             int vibrationDurationSeconds);
         partial void UpdateAlarmSettingsPlatform(bool soundEnabled, bool vibrationEnabled, int vibrationDurationSeconds);
 #if __ANDROID__
-        partial void StartPlatformSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs);
+        partial void StartPlatformSignalLoop(bool useSound, bool useVibration, int durationMs, int intervalMs, double soundVolumePercent);
         partial void StopPlatformSignalLoop();
 #endif
     }
